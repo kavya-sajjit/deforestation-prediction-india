@@ -1,0 +1,22 @@
+# Secrets — never commit these
+.streamlit/secrets.toml
+*service-account*.json
+.env
+
+# Large/raw data — keep the repo small
+data/raw/
+data/boundaries/*.shp
+data/boundaries/*.dbf
+data/boundaries/*.shx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
