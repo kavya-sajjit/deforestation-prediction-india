@@ -2,12 +2,24 @@ torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.23.0
 pandas>=1.5.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
 matplotlib>=3.6.0
 seaborn>=0.12.0
-scikit-learn>=1.2.0
 pillow>=9.5.0
 tifffile>=2023.1.0
 requests>=2.28.0
 tqdm>=4.65.0
 joblib>=1.2.0
 openpyxl>=3.1.0
+tabulate>=0.9.0
+einops>=0.6.0
+# satellite data (v2)
+pystac-client>=0.7.0
+planetary-computer>=1.0.0
+odc-stac>=0.3.9
+rasterio>=1.3.0
+xarray>=2023.1.0
+# official B-cos v2 implementation (Boehle et al.)
+bcos @ git+https://github.com/B-cos/B-cos-v2.git
+pytest>=7.0

@@ -19,4 +19,6 @@ venv/
 .ipynb_checkpoints/
 
 # OS
-.DS_Store
+.DS_Storedata/v2/
+results/**/model.pt
+maps/*.tif
