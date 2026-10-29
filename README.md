@@ -116,7 +116,7 @@ python -m deforest.risk_map --data data/v2 --region odisha_mining \
 python scripts/update_readme.py
 ```
 
-On a free Colab T4 GPU, `notebooks/03_v2_colab.ipynb` runs everything. Runs that have finished are skipped on restart. To move a region box onto an area with more loss, use `python scripts/scan_hansen_aoi.py --bbox ...`, and record the new box here.
+On a free Colab T4 GPU, `notebooks/03_v2_colab.ipynb` runs everything. For first results in about 1–2 hours, it uses `--profile fast --folds fold0 fold1 fold2 --only priority` (12 epochs, 3 spatial folds, the 11 experiments that answer the research question); the tables state how many folds each number is averaged over. Runs that have finished are skipped on restart. To move a region box onto an area with more loss, use `python scripts/scan_hansen_aoi.py --bbox ...`, and record the new box here.
 
 ## Limitations
 

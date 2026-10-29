@@ -56,7 +56,7 @@ BAND_NAMES: List[str] = ["red", "green", "blue", "nir"]
 # B-cos [x, 1-x] encoding means the same thing in every region.
 BAND_SCALE: Dict[str, float] = {"B04": 0.25, "B03": 0.25, "B02": 0.25, "B08": 0.60}
 MAX_CLOUD_COVER = 40                     # scene-level filter before pixel masking
-MAX_SCENES = 12                          # least-cloudy scenes kept per window
+MAX_SCENES = 8                           # least-cloudy scenes kept per window
 SCL_VALID = [4, 5, 6, 7]                 # vegetation, bare soil, water, unclassified
 BASELINE_04_DATE = "2022-01-25"          # L2A after this carry a +1000 DN offset
 
