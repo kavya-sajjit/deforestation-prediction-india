@@ -118,6 +118,12 @@ python scripts/update_readme.py
 
 On a free Colab T4 GPU, `notebooks/03_v2_colab.ipynb` runs everything. For first results in about 1–2 hours, it uses `--profile fast --folds fold0 fold1 fold2 --only priority` (12 epochs, 3 spatial folds, the 11 experiments that answer the research question); the tables state how many folds each number is averaged over. Runs that have finished are skipped on restart. To move a region box onto an area with more loss, use `python scripts/scan_hansen_aoi.py --bbox ...`, and record the new box here.
 
+## Website
+
+`web/` is the project website: a year slider over 2001–2023 forest loss and the model's forecast on a
+map, plus the results. Run it with `cd web && npm install && npm run dev`, then open
+http://localhost:3000. See [`web/README.md`](web/README.md) for real data and deployment.
+
 ## Limitations
 
 * **Hansen labels are not field truth.** They are 30 m (our pixels are 10 m). They count rotational shifting cultivation and plantation harvest as "loss", and they miss gradual degradation. The model learns Hansen's definition of loss.

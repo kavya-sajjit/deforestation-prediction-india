@@ -54,10 +54,14 @@ def make_region(name: str, size: int = 1536, seed: int = 0):
         return img
 
     t0, t1 = scene(False), scene(True)
-    return patches.extract(name, t0, t1, labels)
+    arrays, meta = patches.extract(name, t0, t1, labels)
+    return arrays, meta, tree.astype(np.uint8), lossyear
 
 
 def make_dataset(out_dir: str, size: int = 1536):
     for k, name in enumerate(C.REGIONS):
-        arrays, meta = make_region(name, size, seed=k)
-        patches.save_region(out_dir, name, arrays, meta, dict(region=name, synthetic=True))
+        arrays, meta, tree, lossyear = make_region(name, size, seed=k)
+        patches.save_region(out_dir, name, arrays, meta,
+                            dict(region=name, synthetic=True, shape=[size, size],
+                                 bbox=list(C.REGIONS[name]["bbox"])))
+        np.savez_compressed(f"{out_dir}/{name}_hansen.npz", treecover=tree, lossyear=lossyear)
