@@ -3,8 +3,9 @@
     python -m deforest.experiments --data data/v2 --out results --profile core
     python -m deforest.experiments --data data/v2 --out results --profile core --scheme loro
 
-Profiles: "quick" (smoke test), "core" (what the README reports), "full" (adds
-extra seeds-worth of variants). Re-running skips finished runs, so a Colab
+Profiles: "quick" (smoke test), "fast" (first results in ~1-2 h on a T4: use it
+with --folds fold0 fold1 fold2 and --only PRIORITY), "core" (all 5 folds, 30
+epochs), "full" (longer training). Re-running skips finished runs, so a Colab
 disconnect only loses the run in progress.
 """
 from __future__ import annotations
@@ -42,9 +43,14 @@ EXPERIMENTS = {
         "bcos_bitemporal":   ("nn", "bcos", RGBN, False),
     },
 }
+# The runs that answer the letter's questions, cheapest first.
+PRIORITY = ["history_lr", "gbm", "bcos_rgbn_hist", "cnn_rgbn_hist", "bcos_rgbn", "bcos_rgb",
+            "bcos_pre_inflate", "bcos_pre_project", "bcos_pre_ndvi", "bcos_bitemporal", "cnn_bitemporal"]
 ABLATE = {"bcos_rgbn", "bcos_rgbn_hist", "bcos_bitemporal"}
 PROFILES = {
     "quick": dict(epochs=2, patience=2),
+    # fast: fewer epochs, bigger batches, pretrained models at native 64 px (4x cheaper)
+    "fast": dict(epochs=12, patience=4, batch_size=128, resize=64),
     "core": dict(epochs=30, patience=8),
     "full": dict(epochs=50, patience=12),
 }
@@ -57,11 +63,14 @@ def main():
     ap.add_argument("--tasks", nargs="*", default=["forecast", "detect"])
     ap.add_argument("--scheme", default="block", choices=["block", "loro"])
     ap.add_argument("--profile", default="core", choices=list(PROFILES))
-    ap.add_argument("--only", nargs="*", default=None, help="run only these experiment names")
+    ap.add_argument("--only", nargs="*", default=None,
+                    help="run only these experiment names; 'priority' = the PRIORITY list")
     ap.add_argument("--folds", nargs="*", default=None, help="e.g. fold0 fold1")
     ap.add_argument("--no-download", action="store_true", help="random init instead of ImageNet B-cos weights")
     ap.add_argument("--workers", type=int, default=2)
     a = ap.parse_args()
+    if a.only == ["priority"]:
+        a.only = PRIORITY
 
     from . import explain, train   # torch imported only when needed
     meta, arrays = load_all(a.data)

@@ -63,7 +63,15 @@ def main():
     ap.add_argument("--out", default="data/v2")
     ap.add_argument("--regions", nargs="*", default=list(C.REGIONS))
     a = ap.parse_args()
-    stats = [build_region(r, a.out) for r in a.regions]
+    stats = []
+    for r in a.regions:                      # resume: skip regions already built
+        done = os.path.join(a.out, f"{r}.json")
+        if os.path.exists(done) and os.path.exists(os.path.join(a.out, f"{r}.npz")):
+            print(f"[{r}] already built, skipping")
+            with open(done) as fh:
+                stats.append(json.load(fh))
+            continue
+        stats.append(build_region(r, a.out))
     with open(os.path.join(a.out, "dataset_summary.json"), "w") as fh:
         json.dump(stats, fh, indent=2)
 
