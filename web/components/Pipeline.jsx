@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 
 const STEPS = [
-  ["01", "Sentinel-2 composite", "Jan–Apr 2019, cloud-masked median · R, G, B, NIR at 10 m", "4 bands"],
-  ["02", "Patch grid", "640 m forest patches, non-overlapping, ≥30% forest at the start of 2019", "7,176"],
-  ["03", "Loss history", "Hansen Global Forest Change, 2001–2018: where clearing already happened", "18 yrs"],
-  ["04", "B-cos forecast", "Interpretable network: the decision is an exact sum of per-pixel evidence", "exact"],
-  ["05", "Explanation", "Per-pixel and per-band contributions for every flagged patch", "per pixel"],
-  ["06", "Spatial check", "Whole 5 km blocks held out; scored against real 2020–23 loss", "5 folds"],
+  ["01", "Satellite photos, early 2019", "Sentinel-2"],
+  ["02", "Cut into 640 m squares", "7,176"],
+  ["03", "Add where trees were already cut", "2001–18"],
+  ["04", "Predict which squares lose forest next", "2020–23"],
+  ["05", "Show the pixels behind each warning", "B-cos"],
 ];
 
 export default function Pipeline() {
@@ -31,10 +30,10 @@ export default function Pipeline() {
 
   return (
     <div className="pipeline" ref={ref}>
-      {STEPS.map(([n, t, d, s], i) => (
+      {STEPS.map(([n, t, s], i) => (
         <div key={n} className={`step ${i < on ? "done" : ""}`}>
           <span className="n">[{n}]</span>
-          <span>{t}<span className="d">{d}</span></span>
+          <span>{t}</span>
           <span className="meter"><i style={{ width: i < on ? "100%" : "0%" }} /></span>
           <span className="s">{i < on ? s : "waiting"}</span>
         </div>
