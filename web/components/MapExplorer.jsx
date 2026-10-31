@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadRegion, lostBy, PATCH_HA, REGION_LABEL, REGION_ORDER } from "@/lib/data";
+import { loadRegion, lostBy, PATCH_HA, REGION_LABEL, REGION_ORDER, TIER } from "@/lib/data";
+import Hotspots from "@/components/Hotspots";
 
 const FIRST = 2001, LAST = 2023, FORECAST = 2024; // slider value 2024 = model forecast view
 const YEARS = Array.from({ length: LAST - FIRST + 1 }, (_, i) => FIRST + i);
@@ -30,7 +31,8 @@ function toGeoJSON(doc, year) {
     const lost = lostBy(p, forecast ? 2019 : year);
     const props = {
       i, f: p.f, lost,
-      v: forecast ? (p.p ?? -1) : Math.min(1, lost / Math.max(p.f, 1e-3)),
+      v: forecast ? (p.q ?? p.p ?? -1) : Math.min(1, lost / Math.max(p.f, 1e-3)),
+      h: p.h ?? 0,
       happened: p.l ? ["2020", "2021", "2022", "2023"].reduce((s, y) => s + (p.l[y] || 0), 0) : 0,
       y: p.y ?? -1,
     };
@@ -41,7 +43,7 @@ function toGeoJSON(doc, year) {
 
 const OBSERVED_COLOR = ["interpolate", ["linear"], ["get", "v"], 0, "#3f6340", 0.03, "#7a6a3a", 0.12, "#b9673a", 0.35, "#d0582c"];
 const RISK_COLOR = ["case", ["<", ["get", "v"], 0], "#26302a",
-  ["interpolate", ["linear"], ["get", "v"], 0, "#26372b", 0.35, "#8a7a35", 0.6, "#d9a441", 0.85, "#c8643b"]];
+  ["interpolate", ["linear"], ["get", "v"], 0, "#26372b", 0.15, "#4d5a33", 0.25, "#d9a441", 0.5, "#c8643b", 0.9, "#e0472a"]];
 
 export default function MapExplorer() {
   const box = useRef(null), map = useRef(null);
@@ -53,11 +55,13 @@ export default function MapExplorer() {
   const [hover, setHover] = useState(null);
   const [err, setErr] = useState(null);
   const [ready, setReady] = useState(false);
+  const [spot, setSpot] = useState(null);
 
   // load region data
   useEffect(() => {
     let alive = true;
     setErr(null);
+    setSpot(null);
     loadRegion(region).then((d) => { if (alive) setDoc(d); })
       .catch((e) => alive && setErr(e.message));
     return () => { alive = false; };
@@ -80,6 +84,10 @@ export default function MapExplorer() {
           paint: { "fill-color": OBSERVED_COLOR, "fill-opacity": ["+", 0.45, ["*", 0.4, ["get", "f"]]] } });
         m.addLayer({ id: "actual", type: "line", source: "patches", filter: [">", ["get", "happened"], 0.02],
           paint: { "line-color": "#ebe5d3", "line-width": 1.1, "line-opacity": 0 } });
+        m.addLayer({ id: "spots", type: "line", source: "patches", filter: [">", ["get", "h"], 0],
+          paint: { "line-color": "#d9a441", "line-width": 1.6, "line-opacity": 0 } });
+        m.addLayer({ id: "spot-sel", type: "line", source: "patches", filter: ["==", ["get", "h"], -1],
+          paint: { "line-color": "#ebe5d3", "line-width": 3 } });
         m.addLayer({ id: "hover", type: "line", source: "patches", filter: ["==", ["id"], -1],
           paint: { "line-color": "#ebe5d3", "line-width": 2 } });
         map.current = m;
@@ -104,7 +112,24 @@ export default function MapExplorer() {
     const fc = year === FORECAST;
     m.setPaintProperty("fill", "fill-color", fc ? RISK_COLOR : OBSERVED_COLOR);
     m.setPaintProperty("actual", "line-opacity", fc && showActual ? 0.9 : 0);
-  }, [doc, year, showActual, ready]);
+    m.setPaintProperty("spots", "line-opacity", fc ? 0.95 : 0);
+    m.setFilter("spot-sel", ["==", ["get", "h"], fc && spot ? spot : -1]);
+  }, [doc, year, showActual, ready, spot]);
+
+  // zoom to a hotspot when one is picked, back to the region when cleared
+  const pick = (id) => {
+    setSpot(id);
+    const m = map.current;
+    if (!m || !doc) return;
+    if (id) {
+      setPlaying(false); setYear(FORECAST);
+      const [x0, y0, x1, y1] = doc.hotspots.find((h) => h.id === id).bbox;
+      m.fitBounds([[x0, y0], [x1, y1]], { padding: { top: 60, bottom: 60, right: 60, left: 340 }, maxZoom: 14, duration: 900 });
+    } else {
+      const [x0, y0, x1, y1] = doc.bbox;
+      m.fitBounds([[x0, y0], [x1, y1]], { padding: 24, duration: 900 });
+    }
+  };
 
   // fit to region when it changes
   useEffect(() => {
@@ -155,14 +180,24 @@ export default function MapExplorer() {
       </div>
 
       <div className="explorer">
+        <div className="mapwrap">
         <div className="map" ref={box}>
           {hp && (
             <div className="tooltip" style={{ left: Math.min(hover.x + 14, 9999), top: hover.y + 14 }}>
               <div>forest in 2000 · {(hp.f * 100).toFixed(0)}%</div>
               <div>lost by {fc ? 2019 : year} · {(lostBy(hp, fc ? 2019 : year) * 100).toFixed(1)}%</div>
-              {hp.p !== undefined && <div className="accent-ochre">model risk 2020–23 · {(hp.p * 100).toFixed(0)}%</div>}
+              {hp.q !== undefined ? <div className="accent-ochre">risk 2020–23 · {(hp.q * 100).toFixed(0)}% · {TIER[hp.t]?.label}</div>
+                : hp.p !== undefined && <div className="accent-ochre">model score 2020–23 · {(hp.p * 100).toFixed(0)}%</div>}
+              {hp.h ? <div>part of hotspot #{hp.h}</div> : null}
               {hp.l && <div>actually lost 2020–23 · {(["2020","2021","2022","2023"].reduce((s,y)=>s+((hp.l[y])||0),0)*100).toFixed(1)}%</div>}
             </div>
+          )}
+        </div>
+        {fc ? <Hotspots doc={doc} selected={spot} onSelect={pick} />
+          : doc?.hotspots?.length > 0 && (
+            <button className="hs-chip" onClick={() => { setPlaying(false); setYear(FORECAST); }}>
+              <span className="dot" /> {doc.hotspots.length} high-risk areas · show
+            </button>
           )}
         </div>
 
@@ -200,9 +235,20 @@ export default function MapExplorer() {
           <div className="legend">
             {fc ? (
               <>
-                <div>Model risk of loss, 2020–23</div>
-                <div className="ramp" />
-                <div style={{ justifyContent: "space-between" }}><span>low</span><span>high</span></div>
+                <div>Risk of losing forest, 2020–23</div>
+                {doc?.risk ? ["high", "elevated", "low"].map((k) => {
+                  const t = doc.risk.tiers.find((x) => x.tier === k);
+                  return (
+                    <div key={k}><i className="swatch" style={{ background: TIER[k].color }} />
+                      {TIER[k].label} {k !== "low" ? `(≥${TIER[k].min * 100}%)` : ""}
+                      {t?.hit_rate != null && <span className="muted">&nbsp;· {Math.round(t.hit_rate * 100)}% really lost</span>}
+                    </div>
+                  );
+                }) : <>
+                  <div className="ramp" />
+                  <div style={{ justifyContent: "space-between" }}><span>low</span><span>high</span></div>
+                </>}
+                <div><i className="swatch" style={{ background: "transparent", outline: "1.5px solid #d9a441" }} /> high-risk area (hotspot)</div>
                 <div><i className="swatch" style={{ background: "#26302a" }} /> not scored (ambiguous label)</div>
                 <label className="toggle">
                   <input type="checkbox" checked={showActual} onChange={(e) => setShowActual(e.target.checked)} />
