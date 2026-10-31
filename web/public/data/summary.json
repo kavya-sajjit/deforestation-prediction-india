@@ -1,0 +1,178 @@
+{
+ "note": "Interim results: mean over 3 of 5 spatial folds (core profile). Regenerate with python -m deforest.web_export after the full run.",
+ "tasks": {
+  "forecast": [
+   {
+    "experiment": "bcos_pre_inflate",
+    "ap": 0.4524,
+    "ap_sd": 0.0424,
+    "roc_auc": 0.8316,
+    "mcc": 0.3963,
+    "capture_top10": 0.3573,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_pre_ndvi",
+    "ap": 0.453,
+    "ap_sd": 0.0555,
+    "roc_auc": 0.8354,
+    "mcc": 0.4008,
+    "capture_top10": 0.3602,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_pre_project",
+    "ap": 0.4676,
+    "ap_sd": 0.0545,
+    "roc_auc": 0.8367,
+    "mcc": 0.399,
+    "capture_top10": 0.3872,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_pre_rgb",
+    "ap": 0.4684,
+    "ap_sd": 0.0556,
+    "roc_auc": 0.8371,
+    "mcc": 0.396,
+    "capture_top10": 0.3789,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_rgb",
+    "ap": 0.1924,
+    "ap_sd": 0.033,
+    "roc_auc": 0.6816,
+    "mcc": 0.2423,
+    "capture_top10": 0.0791,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_rgbn",
+    "ap": 0.2466,
+    "ap_sd": 0.0209,
+    "roc_auc": 0.7275,
+    "mcc": 0.2535,
+    "capture_top10": 0.1996,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "bcos_rgbn_hist",
+    "ap": 0.4649,
+    "ap_sd": 0.0697,
+    "roc_auc": 0.8528,
+    "mcc": 0.367,
+    "capture_top10": 0.3747,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "cnn_rgbn",
+    "ap": 0.4475,
+    "ap_sd": 0.0093,
+    "roc_auc": 0.8268,
+    "mcc": 0.3562,
+    "capture_top10": 0.3429,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "cnn_rgbn_hist",
+    "ap": 0.5268,
+    "ap_sd": 0.0438,
+    "roc_auc": 0.8746,
+    "mcc": 0.4443,
+    "capture_top10": 0.415,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "gbm",
+    "ap": 0.5013,
+    "ap_sd": 0.0169,
+    "roc_auc": 0.8639,
+    "mcc": 0.4429,
+    "capture_top10": 0.3899,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   },
+   {
+    "experiment": "history_lr",
+    "ap": 0.423,
+    "ap_sd": 0.0389,
+    "roc_auc": 0.845,
+    "mcc": 0.37,
+    "capture_top10": 0.3625,
+    "chance_ap": 0.1381,
+    "splits": 3,
+    "test_patches": 3516,
+    "test_positives": 483
+   }
+  ]
+ },
+ "dataset": [
+  {
+   "region": "western_ghats",
+   "patches": 2564,
+   "forecast_pos": 150,
+   "forecast_neg": 1902,
+   "detect_pos": 193,
+   "detect_neg": 1870,
+   "biome": "Tropical evergreen / moist deciduous (Kodagu-Wayanad)"
+  },
+  {
+   "region": "odisha_mining",
+   "patches": 796,
+   "forecast_pos": 25,
+   "forecast_neg": 704,
+   "detect_pos": 37,
+   "detect_neg": 700,
+   "biome": "Sal forest with open-cast iron-ore mining (Keonjhar)"
+  },
+  {
+   "region": "northeast_hills",
+   "patches": 2443,
+   "forecast_pos": 565,
+   "forecast_neg": 1060,
+   "detect_pos": 1056,
+   "detect_neg": 1045,
+   "biome": "Subtropical hill forest with shifting cultivation (Mizoram)"
+  },
+  {
+   "region": "central_india",
+   "patches": 1373,
+   "forecast_pos": 16,
+   "forecast_neg": 1326,
+   "detect_pos": 22,
+   "detect_neg": 1323,
+   "biome": "Mixed deciduous and teak forest (Balaghat)"
+  }
+ ],
+ "risk_model": "bcos_rgbn_hist"
+}
