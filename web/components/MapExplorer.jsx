@@ -63,18 +63,21 @@ export default function MapExplorer() {
     return () => { alive = false; };
   }, [region]);
 
-  // create map once
+  // create map once. The `cancelled` flag matters in development, where React runs
+  // effects twice: without it two maps were stacked and the visible one never got data.
   useEffect(() => {
-    let m;
+    let m, cancelled = false;
     (async () => {
       const maplibregl = (await import("maplibre-gl")).default;
+      if (cancelled || !box.current) return;
       m = new maplibregl.Map({ container: box.current, style: BASEMAP, center: [80, 22], zoom: 4,
                                attributionControl: { compact: true }, dragRotate: false });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
       m.on("load", () => {
+        if (cancelled) return;
         m.addSource("patches", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         m.addLayer({ id: "fill", type: "fill", source: "patches",
-          paint: { "fill-color": OBSERVED_COLOR, "fill-opacity": ["+", 0.25, ["*", 0.5, ["get", "f"]]] } });
+          paint: { "fill-color": OBSERVED_COLOR, "fill-opacity": ["+", 0.45, ["*", 0.4, ["get", "f"]]] } });
         m.addLayer({ id: "actual", type: "line", source: "patches", filter: [">", ["get", "happened"], 0.02],
           paint: { "line-color": "#ebe5d3", "line-width": 1.1, "line-opacity": 0 } });
         m.addLayer({ id: "hover", type: "line", source: "patches", filter: ["==", ["id"], -1],
@@ -90,7 +93,7 @@ export default function MapExplorer() {
       });
       m.on("mouseleave", "fill", () => { m.setFilter("hover", ["==", ["id"], -1]); setHover(null); });
     })();
-    return () => { m && m.remove(); map.current = null; };
+    return () => { cancelled = true; if (m) m.remove(); map.current = null; setReady(false); };
   }, []);
 
   // push data + style whenever region, year or toggle changes
