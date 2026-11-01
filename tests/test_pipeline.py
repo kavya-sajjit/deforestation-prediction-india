@@ -94,3 +94,27 @@ def test_end_to_end_quick(data_dir, tmp_path):
     assert (out / "SUMMARY.md").exists()
     assert (out / "forecast" / "block" / "bcos_rgbn_hist" / "fold0" / "explanations.json").exists()
     assert (out / "forecast" / "block" / "bcos_rgbn_hist" / "fold0" / "band_ablation.csv").exists()
+
+
+def test_risk_calibration_and_hotspots():
+    import pandas as pd
+    from deforest import risk_levels as R
+    rng = np.random.default_rng(0)
+    n = 600
+    p = rng.uniform(0, 1, n)
+    y = (rng.uniform(0, 1, n) < p ** 2).astype(int)          # raw scores are over-confident
+    oof = pd.DataFrame(dict(p=p, y=y, fold=[f"fold{i % 3}" for i in range(n)], region="r",
+                            block_r=np.arange(n) // 20, block_c=0))
+    oof["q"] = R.calibrate(oof)
+    oof["tier"] = oof.q.map(R.tier_of)
+    rep = R.report(oof, "toy")
+    assert rep["ece_calibrated"] < rep["ece_raw"]              # calibration helps
+    rates = {t["tier"]: t["hit_rate"] for t in rep["tiers"]}
+    assert rates["high"] > rates["elevated"] > rates["low"]    # tiers are ordered by real outcome
+    # hotspots: a 2x2 block of high squares plus one isolated square
+    lon, lat = np.meshgrid(np.arange(6.0), np.arange(6.0)[::-1])
+    cells = [dict(r=r, c=c, f=1.0, q=0.8, t="high") for r in (1, 2) for c in (1, 2)]
+    cells += [dict(r=4, c=4, f=1.0, q=0.9, t="high"), dict(r=0, c=4, f=1.0, q=0.1, t="low")]
+    spots = R.hotspots(cells, lon, lat, 5, 5)
+    assert len(spots) == 1 and spots[0]["squares"] == 4
+    assert all(c.get("h") == 1 for c in cells[:4]) and "h" not in cells[4]

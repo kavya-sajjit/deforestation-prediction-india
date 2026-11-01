@@ -158,3 +158,13 @@ The v1 code and notebooks remain in `src/`, `train_cnn.py` and `notebooks/` for 
 * Irvin, J. et al. (2020). *ForestNet: Classifying Drivers of Deforestation in Indonesia using Deep Learning on Satellite Imagery.* NeurIPS Workshop on Tackling Climate Change with ML.
 * Biega, A. J. et al. (2020). *Operationalizing the Legal Principle of Data Minimization for Personalization.* SIGIR.
 * ESA Sentinel-2 MSI L2A, via Microsoft Planetary Computer STAC.
+
+## Risk levels, hotspots and who to tell
+
+`python -m deforest.risk_levels --results results --model bcos_rgbn_hist` (also run automatically by `deforest.web_export`):
+
+1. **Calibrate.** Raw scores are mapped to real probabilities with isotonic regression, cross-fitted across the spatial folds, so no square is calibrated using its own label. Calibration is checked with a reliability curve (`results/reliability.png`), the Brier score (compared with always guessing the base rate) and expected calibration error (ECE).
+2. **Tier.** Calibrated risk is cut into High (≥50%), Elevated (≥25%) and Low (`config.RISK_TIERS`). For each tier the report gives the **observed hit rate on held-out areas**: the share of squares in that tier that really lost ≥2% of their forest in 2020–23, with a 95% block-bootstrap interval. The website shows this number next to every tier, so a "High" label always comes with how often "High" turned out to be right.
+3. **Hotspots.** Touching High/Elevated squares are merged into hotspots and ranked by expected forest at risk (calibrated risk × forest area). Each region also gets `<region>_hotspots.geojson`, which can be uploaded to [Global Forest Watch](https://www.globalforestwatch.org/my-gfw/) for weekly satellite alerts on those exact squares.
+
+On the map, the forecast view lists the top hotspots in the top-left corner. Clicking one zooms to it and shows its numbers, the nearest forest departments and NGOs (`web/lib/contacts.js`, sorted by distance), and buttons to copy or email an alert or download the map file. Every alert says it is a statistical forecast, not evidence of wrongdoing, and asks for a field check.

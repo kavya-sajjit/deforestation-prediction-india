@@ -93,3 +93,15 @@ class TrainConfig:
     num_workers: int = 2
     seed: int = SEED
     extra: Dict = field(default_factory=dict)
+
+# ---------------------------------------------------------------------------
+# Risk levels (deforest/risk_levels.py)
+# Model scores are first CALIBRATED so that "40% risk" means about 40 in 100 such
+# squares really lost >=2% of their forest in 2020-23 when we tested on held-out
+# areas. Tiers are cut on that calibrated probability; their real hit rates are
+# measured, not assumed, and reported next to every tier.
+# ---------------------------------------------------------------------------
+RISK_TIERS = [("high", 0.50), ("elevated", 0.25), ("low", 0.0)]   # (name, minimum calibrated risk)
+HOTSPOT_TIERS = ("high", "elevated")     # squares that can form a hotspot
+HOTSPOT_MIN_SQUARES = 2                  # ignore isolated single squares
+HOTSPOT_TOP = 10                         # hotspots kept per region

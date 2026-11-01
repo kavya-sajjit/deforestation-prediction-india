@@ -38,3 +38,10 @@ export function lostBy(p, year) {
   for (const [y, v] of Object.entries(p.l)) if (+y <= year) s += v;
   return s;
 }
+
+// Risk tiers, cut on CALIBRATED risk (see deforest/risk_levels.py). Keep in sync with config.RISK_TIERS.
+export const TIER = {
+  high: { label: "High", min: 0.5, color: "#c8643b" },
+  elevated: { label: "Elevated", min: 0.25, color: "#d9a441" },
+  low: { label: "Low", min: 0, color: "#26372b" },
+};

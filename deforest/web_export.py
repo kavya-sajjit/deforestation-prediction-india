@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from . import risk_levels as R
 from .data.io import load_all
 
 RISK_MODELS = ["bcos_rgbn_hist", "cnn_rgbn_hist", "gbm", "history_lr"]
@@ -109,6 +110,12 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
             risk_model = m
             break
     gbm = _oof(results, "gbm")
+    rep = None
+    if risk_model:  # calibrated risk + tiers, measured on held-out squares
+        cal, rep = R.run(results, risk_model)
+        oof = oof.join(cal[["q", "tier"]])
+        with open(os.path.join(results, "risk_report.json"), "w") as fh:
+            json.dump(rep, fh, indent=1)
     index = []
     for region in sorted(meta.region.unique(), key=list(C.REGIONS).index):
         with open(os.path.join(data_dir, f"{region}.json")) as fh:
@@ -140,6 +147,8 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
                         rec["y"] = int(m.at[i, "y_forecast"])
                         if i in oof.index:
                             rec["p"] = round(float(oof.at[i, "p"]), 4)
+                            rec["q"] = round(float(oof.at[i, "q"]), 4)
+                            rec["t"] = oof.at[i, "tier"]
                         if i in gbm.index:
                             rec["g"] = round(float(gbm.at[i, "p"]), 4)
                     patches.append(rec)
@@ -152,16 +161,30 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
                        "y": int(a.y_forecast)}
                 if i in oof.index:
                     rec["p"] = round(float(oof.at[i, "p"]), 4)
+                    rec["q"] = round(float(oof.at[i, "q"]), 4)
+                    rec["t"] = oof.at[i, "tier"]
                 if i in gbm.index:
                     rec["g"] = round(float(gbm.at[i, "p"]), 4)
                 patches.append(rec)
 
+        spots = R.hotspots([p for p in patches if "q" in p], lon, lat, rows, cols) if rep else []
+        if spots:
+            with open(os.path.join(out, f"{region}_hotspots.geojson"), "w") as fh:
+                json.dump(R.hotspots_geojson(region, spots, lon, lat), fh)
+        risk = None
+        if rep:
+            reg = oof[oof.region == region] if "region" in oof else oof.iloc[:0]
+            risk = dict(model=risk_model, base_rate=round(rep["base_rate"], 4),
+                        ece=round(rep["ece_calibrated"], 4), tiers=rep["tiers"],
+                        region_tiers=R.tier_table(reg, n_boot=200) if len(reg) else None)
         doc = dict(region=region, name=region.replace("_", " ").title(),
                    biome=C.REGIONS[region]["biome"], bbox=C.REGIONS[region]["bbox"],
                    rows=rows, cols=cols, patch_m=C.PATCH * 10,
                    lon=np.round(lon, 5).tolist(), lat=np.round(lat, 5).tolist(),
                    risk_model=risk_model, yearly=tc is not None,
-                   synthetic=bool(info.get("synthetic", False)), patches=patches)
+                   synthetic=bool(info.get("synthetic", False)), risk=risk,
+                   hotspots=[{k: v for k, v in h.items() if k != "cells"} for h in spots],
+                   patches=patches)
         with open(os.path.join(out, f"{region}.json"), "w") as fh:
             json.dump(doc, fh, separators=(",", ":"))
         index.append(dict(region=region, name=doc["name"], biome=doc["biome"], bbox=doc["bbox"],
@@ -171,6 +194,9 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
     summary = _summary(results, data_dir)
     summary["regions"] = index
     summary["risk_model"] = risk_model
+    if rep:
+        summary["risk"] = {k: rep[k] for k in ("model", "base_rate", "brier_raw", "brier_calibrated",
+                                                "brier_baseline", "ece_raw", "ece_calibrated", "tiers")}
     with open(os.path.join(out, "summary.json"), "w") as fh:
         json.dump(summary, fh, indent=1)
 
