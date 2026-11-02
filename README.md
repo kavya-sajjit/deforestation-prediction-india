@@ -1,6 +1,6 @@
 # Forecasting and Explaining Forest Loss in India with B-cos Networks
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c) ![License: MIT](https://img.shields.io/badge/license-MIT-green) [![tests](https://github.com/kavya-sajjit/deforestation-prediction-india/actions/workflows/tests.yml/badge.svg)](https://github.com/kavya-sajjit/deforestation-prediction-india/actions/workflows/tests.yml)
 
 This project predicts **where forest is likely to be cleared next** and **detects where it already was**, using Sentinel-2 satellite imagery over four Indian forest biomes. Every prediction comes with an explanation that is exact by construction. It uses B-cos networks (Böhle et al., CVPR 2022), whose output is a dynamic linear function of the input pixels.
 
@@ -107,7 +107,8 @@ git clone https://github.com/kavya-sajjit/deforestation-prediction-india.git
 cd deforestation-prediction-india
 pip install -r requirements.txt
 
-pytest -q tests/                              # offline checks on synthetic data (~1-2 min)
+pytest -q tests/                              # offline checks on synthetic data (~15 min on CPU)
+python scripts/fetch_assets.py                # optional: v1 weights, GFW tables, v1 patches (not in git)
 python -m deforest.data.build --out data/v2   # download Sentinel-2 + Hansen, build patches
 python -m deforest.experiments --data data/v2 --out results --profile core            # 5-fold spatial CV
 python -m deforest.experiments --data data/v2 --out results --profile core --scheme loro
@@ -123,6 +124,10 @@ On a free Colab T4 GPU, `notebooks/03_v2_colab.ipynb` runs everything. For first
 `web/` is the project website: a year slider over 2001–2023 forest loss and the model's forecast on a
 map, plus the results. Run it with `cd web && npm install && npm run dev`, then open
 http://localhost:3000. See [`web/README.md`](web/README.md) for real data and deployment.
+
+## Model card
+
+Intended use, data, evaluation protocol and risks are in [`MODEL_CARD.md`](MODEL_CARD.md).
 
 ## Limitations
 
