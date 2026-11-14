@@ -72,7 +72,7 @@ def main():
     if a.only == ["priority"]:
         a.only = PRIORITY
 
-    from . import explain, train   # torch imported only when needed
+    from . import explain, shift, train   # torch imported only when needed
     meta, arrays = load_all(a.data)
     meta["fold"] = assign_block_folds(meta)
     cfg = C.TrainConfig(num_workers=a.workers, **PROFILES[a.profile])
@@ -99,6 +99,7 @@ def main():
                                 download=not a.no_download, tag=name)
                 expl = explain.evaluate_explanations(res, variant, out)
                 print("   explanations:", json.dumps({k: v for k, v in expl.items() if k != "band_share"}))
+                shift.per_patch(res, variant, out)     # per-patch records for the ID-vs-OOD comparison
                 if name in ABLATE:
                     explain.band_ablation(res, out)
                 if k_split == 0:
@@ -106,6 +107,8 @@ def main():
 
     from .summarize import summarize
     summarize(a.out)
+    from .shift import report
+    report(a.out)                      # needs both --scheme block and --scheme loro runs; silent otherwise
 
 
 if __name__ == "__main__":
