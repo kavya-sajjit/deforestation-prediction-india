@@ -139,3 +139,20 @@ Consequence for the paper: the title question has a different answer from the on
 candidate framing is now "interpretable does not mean transferable: exact explanations stay stable
 while forecasts of forest loss stop beating a past-loss baseline on unseen regions". This needs more
 regions with enough loss patches (at least 100 each) and three seeds before it is a claim.
+
+## 12. Second session (15 November 2026)
+
+- **From-scratch B-cos was trained with too large a step.** On detection fold 0 (10 epochs, one seed):
+  learning rate 1e-3 gives test AP 0.41, 3e-4 gives 0.66, 1e-4 gives 0.89 (chance 0.198). The logit
+  temperature made no difference. The default is now 1e-4 and every from-scratch B-cos run
+  (`bcos_rgb`, `bcos_rgbn`, `bcos_rgbn_hist`, `bcos_bitemporal`, block and LORO) is marked stale and
+  will retrain on the next `deforest.experiments` call. **Until that retraining is done, every number
+  for those four models, including "0.92 against 0.31" for detection, understates B-cos.**
+- The standard CNN's learning rate was not tuned in the same way. Before claiming anything about the
+  accuracy gap, give the CNN the same three-value check.
+- Folds 0 to 2 of the pretrained B-cos and CNN models were retrained with saved weights, so their
+  explanation records now cover all five folds. The section 11 findings held: the past-loss baseline
+  keeps 100% of its skill in the Western Ghats, the image models keep 41 to 87% in the two regions
+  with enough loss patches, and pretrained B-cos reliance barely moves (JS at most 0.03).
+- With the stricter rule for ratios, no forecast model has in-distribution localisation of 1.5x
+  chance, so H1 stays untestable for forecasting.

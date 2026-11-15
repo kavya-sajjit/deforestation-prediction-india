@@ -9,6 +9,10 @@ With none, 0.5, 0.2 and 0.1 the loss was 1.0 to 4.7 in epoch 0 and exactly 0.693
 network collapsed to near-zero logits during the first epoch, which points at the step size
 (AdamW at 1e-3 with no warm-up), so --lrs tests that next.
 
+Second run, same fold: it is the step size. lr 1e-3: test AP 0.41; 3e-4: 0.66 (leaves the plateau
+at epoch 7); 1e-4: 0.89, loss falling from the first epoch (chance 0.198). One fold, one seed, ten
+epochs: enough to change the default, not enough to quote as a result.
+
 Trains `bcos_bitemporal` (the model that failed) on spatial fold 0 for a few epochs per temperature
 and writes one row per epoch to <out>/bcos_scratch_temperature.csv. Read it like this:
   * train_loss stuck near 0.693 and test AP near chance  -> still on the plateau
@@ -33,7 +37,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--data", default="data/v2")
 ap.add_argument("--out", default="results/diagnostics")
 ap.add_argument("--temperatures", nargs="+", default=["none"])
-ap.add_argument("--lrs", nargs="+", type=float, default=[C.TrainConfig().lr_scratch])
+ap.add_argument("--lrs", nargs="+", type=float, default=[C.TrainConfig().lr_bcos_scratch])
 ap.add_argument("--epochs", type=int, default=10)
 ap.add_argument("--workers", type=int, default=2)
 a = ap.parse_args()
@@ -51,7 +55,7 @@ for t in a.temperatures:
     print(f"=== logit temperature {T}, lr {lr:g}  ({name}: train {len(tr)}, val {len(va)}, test {len(te)})", flush=True)
     work = tempfile.mkdtemp()
     r = train.run("bcos", "detect", ["red", "green", "blue", "nir"], False, meta, arrays, tr, va, te, work,
-                  C.TrainConfig(epochs=a.epochs, patience=a.epochs, num_workers=a.workers, lr_scratch=lr),
+                  C.TrainConfig(epochs=a.epochs, patience=a.epochs, num_workers=a.workers, lr_bcos_scratch=lr),
                   download=False, tag=tag)
     m = r["metrics"]
     for h in pd.read_csv(os.path.join(work, "history.csv")).to_dict("records"):

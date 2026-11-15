@@ -85,7 +85,12 @@ SEED = 42
 class TrainConfig:
     epochs: int = 30
     batch_size: int = 64
-    lr_scratch: float = 1e-3
+    lr_scratch: float = 1e-3             # standard CNN trained from scratch
+    # B-cos from scratch needs a smaller step. At 1e-3 `bcos_bitemporal` collapsed to cross-entropy
+    # ln 2 after one epoch and stayed there; on the same fold (scripts/diagnose_bcos_scratch.py,
+    # 15 Nov 2026, 10 epochs, chosen on validation AP) 3e-4 left the plateau only at epoch 7 and
+    # 1e-4 never entered it: validation AP 0.41 / 0.67 / 0.89, test AP 0.41 / 0.66 / 0.89.
+    lr_bcos_scratch: float = 1e-4
     lr_pretrained: float = 1e-4
     weight_decay: float = 1e-4
     patience: int = 8                    # early stopping on validation AP

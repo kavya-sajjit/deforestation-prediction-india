@@ -60,8 +60,8 @@ def _needs_run(out: str, kind: str, variant: str):
     """None if the run is finished and matches the current code, else the reason to (re)run it.
 
     A neural run counts as finished only if its weights were saved, because the explanation and
-    shift analyses need them. From-scratch B-cos runs made before the logit temperature existed
-    are stale: they were trained with a setting that left some of them stuck at ln 2.
+    shift analyses need them. From-scratch B-cos runs trained at the old learning rate are stale:
+    it left some of them stuck at cross-entropy ln 2 (see config.TrainConfig.lr_bcos_scratch).
     """
     mf = os.path.join(out, "metrics.json")
     if not os.path.exists(mf):
@@ -72,8 +72,11 @@ def _needs_run(out: str, kind: str, variant: str):
         return "no saved weights"
     if variant == "bcos":
         with open(mf) as fh:
-            if json.load(fh).get("logit_temperature") != C.SCRATCH_LOGIT_TEMPERATURE:
-                return "trained before the logit temperature fix"
+            m = json.load(fh)
+        if m.get("lr") != C.TrainConfig().lr_bcos_scratch:
+            return "trained with the old learning rate, which left from-scratch B-cos on a plateau"
+        if m.get("logit_temperature") != C.SCRATCH_LOGIT_TEMPERATURE:
+            return "trained with a different logit temperature"
     return None
 
 
