@@ -56,6 +56,27 @@ PROFILES = {
 }
 
 
+def _needs_run(out: str, kind: str, variant: str):
+    """None if the run is finished and matches the current code, else the reason to (re)run it.
+
+    A neural run counts as finished only if its weights were saved, because the explanation and
+    shift analyses need them. From-scratch B-cos runs made before the logit temperature existed
+    are stale: they were trained with a setting that left some of them stuck at ln 2.
+    """
+    mf = os.path.join(out, "metrics.json")
+    if not os.path.exists(mf):
+        return "new"
+    if kind == "tab":
+        return None
+    if not os.path.exists(os.path.join(out, "model.pt")):
+        return "no saved weights"
+    if variant == "bcos":
+        with open(mf) as fh:
+            if json.load(fh).get("logit_temperature") != C.SCRATCH_LOGIT_TEMPERATURE:
+                return "trained before the logit temperature fix"
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/v2")
@@ -88,8 +109,11 @@ def main():
                 if a.only and name not in a.only:
                     continue
                 out = os.path.join(a.out, task, a.scheme, name, split_name)
-                if os.path.exists(os.path.join(out, "metrics.json")):
+                why = _needs_run(out, kind, variant)
+                if why is None:
                     continue
+                if why != "new":
+                    print(f"   (re-running {name}/{split_name}: {why})")
                 print(f"== {task} | {a.scheme} | {split_name} | {name}  "
                       f"(train {len(tr)}, val {len(va)}, test {len(te)}, test positives {int(meta.loc[te, col].sum())})")
                 if kind == "tab":

@@ -197,7 +197,8 @@ def backfill(data_dir: str, root: str = "results") -> int:
                     continue
                 kw = dict(task=task, bands=ck["bands"], history=ck["history"],
                           with_ndvi=ck["variant"] == "bcos_pre_ndvi")
-                model = build_model(ck["variant"], ck["n_channels"], download=False)
+                model = build_model(ck["variant"], ck["n_channels"], download=False,
+                            logit_temperature=ck.get("logit_temperature"))
                 model.load_state_dict(ck["state_dict"])
                 res = dict(model=model.to(device()), resize=ck["resize"], uses_ndvi=kw["with_ndvi"], preds=preds,
                            datasets=(PatchDataset(meta, arrays, tr, **kw), None, PatchDataset(meta, arrays, te, **kw)))

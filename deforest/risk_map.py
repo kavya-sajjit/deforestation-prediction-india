@@ -33,7 +33,8 @@ def main():
 
     ck = torch.load(a.model, map_location="cpu")
     meta, arrays = load_all(a.data, [a.region])
-    model = build_model(ck["variant"], ck["n_channels"], download=False)
+    model = build_model(ck["variant"], ck["n_channels"], download=False,
+                        logit_temperature=ck.get("logit_temperature"))
     model.load_state_dict(ck["state_dict"]); model.to(device()).eval()
     ds = PatchDataset(meta, arrays, meta.index, task=ck["task"], bands=ck["bands"], history=ck["history"],
                       with_ndvi=ck["variant"] == "bcos_pre_ndvi")

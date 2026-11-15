@@ -105,3 +105,19 @@ RISK_TIERS = [("high", 0.50), ("elevated", 0.25), ("low", 0.0)]   # (name, minim
 HOTSPOT_TIERS = ("high", "elevated")     # squares that can form a hotspot
 HOTSPOT_MIN_SQUARES = 2                  # ignore isolated single squares
 HOTSPOT_TOP = 10                         # hotspots kept per region
+
+
+# Logit temperature for B-cos networks trained from scratch (logits are divided by it; None = off).
+#
+# Why the setting exists: on the real detection data `bcos_bitemporal` sat at cross-entropy ln 2 for
+# 12+ epochs and ended at chance. At initialisation a from-scratch B-cos ResNet-18 has logits about
+# 5x smaller than a standard one (std of the logit difference 0.017 against 0.095). A temperature is
+# one positive constant on both classes, so the model stays exactly linear in its input for a fixed
+# dynamic weight and contribution maps still sum to the logit difference.
+#
+# Why it is still None: on synthetic data 0.02 made the first-epoch loss explode (147), and without
+# it the model trained normally there, so the plateau is specific to the real data. The value has to
+# be chosen from evidence: run `python scripts/diagnose_bcos_scratch.py` on the real dataset and set
+# this to the value that leaves the plateau without the loss blowing up. Runs trained with a
+# different value are treated as stale by deforest.experiments and trained again.
+SCRATCH_LOGIT_TEMPERATURE = None
