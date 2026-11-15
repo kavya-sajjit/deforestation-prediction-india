@@ -116,3 +116,26 @@ be able to explain each measure in section 2 without notes before submitting.
 - [ ] every hypothesis in section 2 marked supported, not supported or inconclusive, with the interval
 - [ ] limitations section written before the abstract
 - [ ] `pytest -q tests/` passes
+
+## 11. First full run (14 November 2026, Colab T4, one seed, four regions)
+
+Numbers are in `results/SHIFT.md` on Drive. Read against section 2:
+
+| | Status | What the run showed |
+|---|---|---|
+| H1 | **cannot be tested for forecasting yet** | In-distribution localisation is already at chance (0.8 to 1.2x) for the forecast models, so there is no explanation quality to lose. For the detection CNN (Grad-CAM, 2 to 13x chance) localisation fell roughly in step with AP, not faster. |
+| H2 | inconclusive | Deletion gaps of the B-cos forecast models are near zero in both settings: image pixels barely move the prediction. |
+| H3 | **not supported** | Spearman between reliance shift and AP drop = -0.32 over 24 model-region pairs. |
+| H4 | partly | Pretrained B-cos keeps almost the same channel reliance on unseen regions (JS up to 0.03, against 0.04 to 0.17 from scratch), yet its AP still falls. Stable reasons did not mean stable accuracy. |
+
+Findings that were not hypotheses:
+
+- On unseen regions the past-loss baseline keeps all of its skill, while the CNN and pretrained B-cos models keep roughly 45 to 90% of theirs and no longer beat it.
+- Pooled AP hides the regions. In central India (16 loss patches) and Odisha (25) every forecast model is near that region's chance level; the pooled figure is carried by the northeast hills and the Western Ghats. `summarize.py` now prints AP inside each region.
+- `bcos_bitemporal` does not train (loss stays at ln 2). Fix or drop before any write-up.
+- Only folds 3 and 4 of the block runs have saved weights, so in-distribution explanation records cover two of five folds. Retrain folds 0 to 2.
+
+Consequence for the paper: the title question has a different answer from the one planned for. The
+candidate framing is now "interpretable does not mean transferable: exact explanations stay stable
+while forecasts of forest loss stop beating a past-loss baseline on unseen regions". This needs more
+regions with enough loss patches (at least 100 each) and three seeds before it is a claim.

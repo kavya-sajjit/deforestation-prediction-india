@@ -42,7 +42,12 @@ import numpy as np
 import pandas as pd
 
 FRACS = (0.05, 0.10, 0.20, 0.30, 0.50)     # share of pixels removed along the deletion curve
-MIN_SKILL = 0.05                           # below this ID skill, a retention ratio is meaningless
+# A "share kept" is a ratio, and a ratio of two near-chance numbers is noise. It is reported only
+# when the in-distribution value is clearly above chance and rests on enough loss patches.
+MIN_SKILL = 0.05                           # AP must exceed chance by this much (and by half of chance)
+MIN_LIFT = 1.5                             # localisation must be at least 1.5x chance
+MIN_DEL = 0.05                             # deletion gap must be at least this large
+MIN_POS = 30                               # loss patches needed before any ratio is shown
 
 
 # --------------------------------------------------------------------------- deletion (torch)
@@ -226,10 +231,11 @@ def _js(a, b) -> float:
     return float(jensenshannon(a, b, base=2))
 
 
-def _retention(v_in: float, v_out: float, chance: float) -> float:
-    """Share of the above-chance part that survives the move. NaN if there was none to lose."""
+def _retention(v_in: float, v_out: float, chance: float, min_skill: float = MIN_SKILL, n_pos: int = MIN_POS) -> float:
+    """Share of the above-chance part that survives the move. NaN if there was too little to lose."""
     s_in = v_in - chance
-    return float((v_out - chance) / s_in) if np.isfinite(s_in) and s_in > MIN_SKILL else float("nan")
+    ok = np.isfinite(s_in) and np.isfinite(v_out) and s_in >= min_skill and n_pos >= MIN_POS
+    return float((v_out - chance) / s_in) if ok else float("nan")
 
 
 def _load(root: str, task: str, scheme: str, exp: str):
@@ -241,10 +247,10 @@ def _load(root: str, task: str, scheme: str, exp: str):
         runs += 1
         p = pd.read_csv(pf)
         preds.append(p[p.split == "test"])
-        if os.path.exists(ef):
+        if os.path.exists(ef) and os.path.getsize(ef) > 5:
             expl.append(pd.read_csv(ef))
     cat = lambda v: pd.concat(v, ignore_index=True) if v else pd.DataFrame()
-    return cat(preds), cat(expl), runs
+    return cat(preds), cat(expl), runs, len(expl)
 
 
 def _pair_stats(pi: pd.DataFrame, po: pd.DataFrame, ei: pd.DataFrame, eo: pd.DataFrame) -> Dict[str, float]:
@@ -260,8 +266,8 @@ def _pair_stats(pi: pd.DataFrame, po: pd.DataFrame, ei: pd.DataFrame, eo: pd.Dat
 
 def compare(root: str, task: str, exp: str, n_boot: int = 500, seed: int = 0) -> pd.DataFrame:
     """ID vs OOD, per held-out region, on the patches both runs scored."""
-    pi, ei, runs_in = _load(root, task, "block", exp)
-    po, eo, _ = _load(root, task, "loro", exp)
+    pi, ei, runs_in, expl_runs_in = _load(root, task, "block", exp)
+    po, eo, _, _ = _load(root, task, "loro", exp)
     if pi.empty or po.empty:
         return pd.DataFrame()
     rng, rows = np.random.default_rng(seed), []
@@ -275,12 +281,15 @@ def compare(root: str, task: str, exp: str, n_boot: int = 500, seed: int = 0) ->
             ce = np.intersect1d(ea.idx, eb.idx)
             ea, eb = ea[ea.idx.isin(ce)], eb[eb.idx.isin(ce)]
         s = _pair_stats(a, b, ea, eb)
-        row = dict(experiment=exp, task=task, region=region, patches=len(common), positives=int(a.y.sum()),
-                   id_folds=runs_in, expl_patches=int(len(ea)) if len(ea) else 0, **s)
-        row["ap_retention"] = _retention(s["ap_in"], s["ap_out"], s["chance_ap"])
+        n_pos = int(a.y.sum())
+        n_epos = int(ea.y.sum()) if len(ea) else 0          # loss patches with explanation records in both runs
+        row = dict(experiment=exp, task=task, region=region, patches=len(common), positives=n_pos,
+                   id_folds=runs_in, id_expl_folds=expl_runs_in, expl_positives=n_epos, **s)
+        ap_min = max(MIN_SKILL, 0.5 * s["chance_ap"]) if np.isfinite(s["chance_ap"]) else MIN_SKILL
+        row["ap_retention"] = _retention(s["ap_in"], s["ap_out"], s["chance_ap"], ap_min, n_pos)
         if "lift_in" in s:
-            row["lift_retention"] = _retention(s["lift_in"], s["lift_out"], 1.0)
-            row["del_retention"] = _retention(s["del_in"], s["del_out"], 0.0)
+            row["lift_retention"] = _retention(s["lift_in"], s["lift_out"], 1.0, MIN_LIFT - 1.0, n_epos)
+            row["del_retention"] = _retention(s["del_in"], s["del_out"], 0.0, MIN_DEL, n_epos)
 
         # paired block bootstrap: resample 5 km blocks, recompute both sides on the same blocks
         key = lambda d: d.block_r.astype(str) + "|" + d.block_c.astype(str)
@@ -295,8 +304,9 @@ def compare(root: str, task: str, exp: str, n_boot: int = 500, seed: int = 0) ->
             cat = lambda g: pd.concat([g[k] for k in pick if k in g], ignore_index=True) if any(k in g for k in pick) else pd.DataFrame()
             t = _pair_stats(cat(ga), cat(gb), cat(gea), cat(geb))
             d_ap.append(t["ap_in"] - t["ap_out"])
-            if "lift_in" in t:
-                d_ret.append(_retention(t["lift_in"], t["lift_out"], 1.0) - _retention(t["ap_in"], t["ap_out"], t["chance_ap"]))
+            if "lift_in" in t and np.isfinite(row.get("lift_retention", np.nan)) and np.isfinite(row["ap_retention"]):
+                d_ret.append(_retention(t["lift_in"], t["lift_out"], 1.0, 1e-6, n_epos)
+                             - _retention(t["ap_in"], t["ap_out"], t["chance_ap"], 1e-6, n_pos))
         ci = lambda v: tuple(np.nanpercentile(v, [2.5, 97.5])) if np.isfinite(v).sum() > 20 else (np.nan, np.nan)
         row["ap_drop_lo"], row["ap_drop_hi"] = ci(np.asarray(d_ap, float))
         # < 0 means explanations kept a smaller share of their above-chance quality than accuracy did
@@ -326,24 +336,32 @@ def report(root: str = "results") -> str:
          "ID = the model trained on other blocks of the same region (block split). "
          "OOD = the model never saw the region (leave-one-region-out). Both columns are computed on the same patches. "
          "Retention = share of the above-chance part that survives the move (100% = nothing lost; "
-         f"shown only when the ID value is more than {MIN_SKILL} above chance).\n"]
+         f"shown only when there are at least {MIN_POS} loss patches and the ID value is clearly above chance: "
+         f"AP by {MIN_SKILL} and by half of chance, localisation at least {MIN_LIFT}x chance, deletion gap at least {MIN_DEL}).\n"]
     for task, t in df.groupby("task"):
         L.append(f"\n## {task}\n")
         if (t.id_folds < t.id_folds.max()).any() or t.id_folds.max() < 5:
             lo, hi = int(t.id_folds.min()), int(t.id_folds.max())
             L.append(f"*ID numbers use {lo if lo == hi else f'{lo}–{hi}'} of 5 spatial folds, "
                      "so only patches in those folds are compared.*\n")
+        if "id_expl_folds" in t.columns and (t.id_expl_folds < t.id_folds).any():
+            k = t[t.id_expl_folds > 0]
+            L.append(f"*Explanation columns: only {int(k.id_expl_folds.min()) if len(k) else 0}"
+                     f"–{int(t.id_expl_folds.max())} of {int(t.id_folds.max())} in-distribution folds have per-patch records "
+                     "(the others have no saved model), so localisation, deletion gap and reliance are compared on the "
+                     "patches of those folds only. The count is the second number in the Patches column.*\n")
         L.append("| Model | Held-out region | Patches (loss) | AP ID → OOD | AP drop 95% CI | AP kept | "
                  "Localisation ÷ chance ID → OOD | Kept | Deletion gap ID → OOD | Kept | Reliance shift (JS) |")
         L.append("|" + "---|" * 11)
         g = lambda r, c: float(r[c]) if c in t.columns and pd.notna(r[c]) else float("nan")
         for _, r in t.iterrows():
-            L.append(f"| {r.experiment} | {r.region} | {r.patches} ({r.positives}) | "
+            L.append(f"| {r.experiment} | {r.region} | {r.patches} ({r.positives}; {int(r.expl_positives)} explained) | "
                      f"{f3(r.ap_in)} → {f3(r.ap_out)} | [{f3(r.ap_drop_lo)}, {f3(r.ap_drop_hi)}] | {pct(r.ap_retention)} | "
                      f"{f2(g(r, 'lift_in'))} → {f2(g(r, 'lift_out'))} | {pct(g(r, 'lift_retention'))} | "
                      f"{f3(g(r, 'del_in'))} → {f3(g(r, 'del_out'))} | {pct(g(r, 'del_retention'))} | {f3(g(r, 'reliance_js'))} |")
-        L.append("\nA dash means the value is undefined: no loss patches with positive image evidence, "
-                 "an in-distribution value too close to chance to take a ratio of, or (reliance shift) a model that is not B-cos.")
+        L.append("\nA dash means the value is undefined or not trustworthy: no loss patches with positive image "
+                 "evidence, too few loss patches, an in-distribution value too close to chance to take a ratio of, "
+                 "or (reliance shift) a model that is not B-cos.")
         if "lift_retention" in t.columns:
             k = t.dropna(subset=["ap_retention", "lift_retention"])
             if len(k):

@@ -159,7 +159,7 @@ def test_shift_report_compares_the_same_patches(tmp_path):
     import pandas as pd
     from deforest import shift
     rng = np.random.default_rng(0)
-    n = 200
+    n = 400
     base = pd.DataFrame(dict(idx=np.arange(n), region="western_ghats", block_r=np.arange(n) // 10, block_c=0,
                              y=(np.arange(n) % 4 == 0).astype(int), split="test", threshold=0.5))
     expl = base[base.y == 1][["idx", "region", "block_r", "block_c", "y"]].assign(chance=0.05)
@@ -183,6 +183,16 @@ def test_shift_report_compares_the_same_patches(tmp_path):
     assert r.ap_in == 1.0 and r.ap_out < 0.6 and r.ap_drop_lo > 0
     assert abs(r.lift_in - 10) < 1e-6 and abs(r.lift_out - 1) < 1e-6
     assert abs(r.lift_retention) < 1e-6 and abs(r.del_retention) < 1e-6
+    assert r.expl_positives == 50 and "explained" in text
     assert 0.2 < r.reliance_js < 0.5
     assert "1 of 5 spatial folds" in text
     assert (tmp_path / "shift_forecast.png").exists()
+
+
+def test_no_retention_ratio_when_in_distribution_is_near_chance():
+    """A ratio of two near-chance numbers is noise and must not be printed."""
+    from deforest.shift import _retention
+    assert np.isnan(_retention(0.014, 0.012, 0.012, 0.05, 100))        # AP barely above chance
+    assert np.isnan(_retention(1.11, 2.00, 1.0, 0.5, 100))             # localisation 1.11x: was "894% kept"
+    assert np.isnan(_retention(0.9, 0.5, 0.2, 0.05, 16))               # too few loss patches
+    assert abs(_retention(0.6, 0.4, 0.2, 0.05, 100) - 0.5) < 1e-9
