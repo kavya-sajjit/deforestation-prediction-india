@@ -79,6 +79,24 @@ def summarize(root: str = "results") -> str:
         for _, r in tab.sort_values("ap", ascending=False).iterrows():
             vals = [_fmt(r[c], r[c + "_sd"]) for c in COLS]
             lines.append(f"| {r.experiment} | " + " | ".join(vals) + f" | {r.ap_95ci_block_bootstrap} |")
+        if scheme == "block" and "region" in allp.columns and allp.region.nunique() > 1:
+            # One pooled AP can hide a model that only knows which region loses more forest.
+            regs = sorted(allp.region.unique())
+            base = allp.drop_duplicates("idx") if "idx" in allp.columns else allp
+            lines.append("\n**AP inside each region** (pooled test predictions; compare with that region's own chance level)\n")
+            lines.append("| Experiment | " + " | ".join(regs) + " |")
+            lines.append("|" + "---|" * (len(regs) + 1))
+            lines.append("| *chance (share of loss patches)* | "
+                         + " | ".join(f"*{base[base.region == r].y.mean():.3f}*" for r in regs) + " |")
+            lines.append("| *loss patches* | " + " | ".join(f"*{int(base[base.region == r].y.sum())}*" for r in regs) + " |")
+            for name in tab.sort_values("ap", ascending=False).experiment:
+                g = allp[allp.experiment == name]
+                cells = []
+                for r in regs:
+                    gr = g[g.region == r]
+                    cells.append(f"{point_metrics(gr.y.to_numpy(), gr.p.to_numpy(), 0.5)['ap']:.3f}"
+                                 if gr.y.nunique() > 1 else "–")
+                lines.append(f"| {name} | " + " | ".join(cells) + " |")
         if "expl_lift" in tab:
             lines.append("\n**Explanation checks** (positive test patches)\n")
             lines.append("| Experiment | Evidence on lost pixels ÷ chance | Spearman vs random-weight model (lower is better) | Max completeness error |")

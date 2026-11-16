@@ -56,6 +56,30 @@ PROFILES = {
 }
 
 
+def _needs_run(out: str, kind: str, variant: str):
+    """None if the run is finished and matches the current code, else the reason to (re)run it.
+
+    A neural run counts as finished only if its weights were saved, because the explanation and
+    shift analyses need them. From-scratch B-cos runs trained at the old learning rate are stale:
+    it left some of them stuck at cross-entropy ln 2 (see config.TrainConfig.lr_bcos_scratch).
+    """
+    mf = os.path.join(out, "metrics.json")
+    if not os.path.exists(mf):
+        return "new"
+    if kind == "tab":
+        return None
+    if not os.path.exists(os.path.join(out, "model.pt")):
+        return "no saved weights"
+    if variant == "bcos":
+        with open(mf) as fh:
+            m = json.load(fh)
+        if m.get("lr") != C.TrainConfig().lr_bcos_scratch:
+            return "trained with the old learning rate, which left from-scratch B-cos on a plateau"
+        if m.get("logit_temperature") != C.SCRATCH_LOGIT_TEMPERATURE:
+            return "trained with a different logit temperature"
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/v2")
@@ -72,7 +96,7 @@ def main():
     if a.only == ["priority"]:
         a.only = PRIORITY
 
-    from . import explain, train   # torch imported only when needed
+    from . import explain, shift, train   # torch imported only when needed
     meta, arrays = load_all(a.data)
     meta["fold"] = assign_block_folds(meta)
     cfg = C.TrainConfig(num_workers=a.workers, **PROFILES[a.profile])
@@ -88,8 +112,11 @@ def main():
                 if a.only and name not in a.only:
                     continue
                 out = os.path.join(a.out, task, a.scheme, name, split_name)
-                if os.path.exists(os.path.join(out, "metrics.json")):
+                why = _needs_run(out, kind, variant)
+                if why is None:
                     continue
+                if why != "new":
+                    print(f"   (re-running {name}/{split_name}: {why})")
                 print(f"== {task} | {a.scheme} | {split_name} | {name}  "
                       f"(train {len(tr)}, val {len(va)}, test {len(te)}, test positives {int(meta.loc[te, col].sum())})")
                 if kind == "tab":
@@ -99,6 +126,7 @@ def main():
                                 download=not a.no_download, tag=name)
                 expl = explain.evaluate_explanations(res, variant, out)
                 print("   explanations:", json.dumps({k: v for k, v in expl.items() if k != "band_share"}))
+                shift.per_patch(res, variant, out)     # per-patch records for the ID-vs-OOD comparison
                 if name in ABLATE:
                     explain.band_ablation(res, out)
                 if k_split == 0:
@@ -106,6 +134,8 @@ def main():
 
     from .summarize import summarize
     summarize(a.out)
+    from .shift import report
+    report(a.out)                      # needs both --scheme block and --scheme loro runs; silent otherwise
 
 
 if __name__ == "__main__":

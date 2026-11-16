@@ -69,7 +69,7 @@ def run(variant: str, task: str, bands: List[str], history: bool, meta: pd.DataF
     dl_tr, dl_va, dl_te = mk(ds_tr, True), mk(ds_va, False), mk(ds_te, False)
 
     model = build_model(variant, ds_tr.n_channels, download=download).to(dev)
-    lr = cfg.lr_pretrained if variant in PRETRAINED else cfg.lr_scratch
+    lr = cfg.lr_pretrained if variant in PRETRAINED else cfg.lr_bcos_scratch if variant == "bcos" else cfg.lr_scratch
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=cfg.weight_decay)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=cfg.epochs)
     y_tr = ds_tr.labels()
@@ -113,12 +113,15 @@ def run(variant: str, task: str, bands: List[str], history: bool, meta: pd.DataF
     pd.DataFrame(hist).to_csv(os.path.join(out_dir, "history.csv"), index=False)
     te = preds[preds.split == "test"]
     res = point_metrics(te.y.to_numpy(), te.p.to_numpy(), thr)
+    logit_t = C.SCRATCH_LOGIT_TEMPERATURE if variant == "bcos" else None
     res.update(variant=variant, task=task, bands="+".join(bands), history=history,
-               n_train=len(train_idx), n_val=len(val_idx), epochs_run=len(hist), pos_weight=pos_w)
+               n_train=len(train_idx), n_val=len(val_idx), epochs_run=len(hist), pos_weight=pos_w,
+               logit_temperature=logit_t, lr=lr)
+    torch.save(dict(state_dict=model.state_dict(), variant=variant, bands=bands, history=history,
+                    task=task, n_channels=ds_tr.n_channels, resize=resize, threshold=thr,
+                    logit_temperature=logit_t),
+               os.path.join(out_dir, "model.pt"))
     with open(os.path.join(out_dir, "metrics.json"), "w") as fh:
         json.dump(res, fh, indent=2)
-    torch.save(dict(state_dict=model.state_dict(), variant=variant, bands=bands, history=history,
-                    task=task, n_channels=ds_tr.n_channels, resize=resize, threshold=thr),
-               os.path.join(out_dir, "model.pt"))
     return dict(model=model, preds=preds, metrics=res, resize=resize, uses_ndvi=uses_ndvi,
                 datasets=(ds_tr, ds_va, ds_te))

@@ -19,10 +19,11 @@ The research question behind it: **which spectral bands does the model need, and
 3. [How the evaluation avoids fooling itself](#how-the-evaluation-avoids-fooling-itself)
 4. [Results](#results)
 5. [Checking the explanations](#checking-the-explanations)
-6. [Reproduce](#reproduce)
-7. [Limitations](#limitations)
-8. [What changed from v1](#what-changed-from-v1)
-9. [References](#references)
+6. [Do the reasons survive a new region?](#do-the-reasons-survive-a-new-region)
+7. [Reproduce](#reproduce)
+8. [Limitations](#limitations)
+9. [What changed from v1](#what-changed-from-v1)
+10. [References](#references)
 
 ---
 
@@ -100,6 +101,28 @@ Pretty heatmaps are not evidence. For every model, on the test patches that real
 3. **Randomisation sanity check** (Adebayo et al., 2018). The Spearman correlation between maps from the trained model and from the same architecture with random weights. It should be low; if it isn't, the map reflects the architecture, not what was learned.
 4. **Band reliance.** The share of |contribution| per input band, and the drop in AP per region when one band is replaced by its training mean.
 
+## Do the reasons survive a new region?
+
+A model that keeps its accuracy on an unseen biome may still be right for different reasons. Every
+model here is trained twice: once tested on held-out blocks of regions it knows (in-distribution), and
+once tested on a region it never saw (leave-one-region-out). Each patch is therefore scored by both, and
+[`deforest/shift.py`](deforest/shift.py) compares, on the same patches:
+
+| Measure | Question | Needs labels? |
+|---|---|---|
+| AP above chance | does the forecast still rank loss first? | yes |
+| Localisation ÷ chance | does the evidence still fall where forest is later lost? | yes (Hansen masks) |
+| Deletion gap | if the pixels the explanation points at are removed, does P(loss) fall faster than when random pixels are removed? A causal check that needs no mask | no |
+| Reliance shift | Jensen-Shannon distance between the share of contribution each input channel gets, known region vs unseen region (B-cos only) | **no** |
+
+Differences come with a paired block bootstrap (the same 5 km blocks are resampled for both models).
+The plan for turning this into a paper, with hypotheses written down before the runs, is in
+[`paper/PLAN.md`](paper/PLAN.md).
+
+<!-- SHIFT:START -->
+*Not run yet. This needs the leave-one-region-out runs: see step 3 of [Reproduce](#reproduce).*
+<!-- SHIFT:END -->
+
 ## Reproduce
 
 ```bash
@@ -111,6 +134,8 @@ pytest -q tests/                              # offline checks on synthetic data
 python -m deforest.data.build --out data/v2   # download Sentinel-2 + Hansen, build patches
 python -m deforest.experiments --data data/v2 --out results --profile core            # 5-fold spatial CV
 python -m deforest.experiments --data data/v2 --out results --profile core --scheme loro
+python -m deforest.shift results --data data/v2 --backfill    # per-patch records for runs trained earlier
+python -m deforest.shift results                              # known region vs unseen region -> results/SHIFT.md
 python -m deforest.risk_map --data data/v2 --region odisha_mining \
     --model results/forecast/loro/bcos_rgbn_hist/test_odisha_mining/model.pt --out maps
 python scripts/update_readme.py
@@ -156,6 +181,7 @@ The v1 code and notebooks remain in `src/`, `train_cnn.py` and `notebooks/` for 
 * Roberts, D. R. et al. (2017). *Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure.* Ecography 40, 913–929.
 * Adebayo, J. et al. (2018). *Sanity Checks for Saliency Maps.* NeurIPS.
 * Irvin, J. et al. (2020). *ForestNet: Classifying Drivers of Deforestation in Indonesia using Deep Learning on Satellite Imagery.* NeurIPS Workshop on Tackling Climate Change with ML.
+* Samek, W. et al. (2017). *Evaluating the Visualization of What a Deep Neural Network Has Learned.* IEEE TNNLS. (pixel-deletion evaluation)
 * Biega, A. J. et al. (2020). *Operationalizing the Legal Principle of Data Minimization for Personalization.* SIGIR.
 * ESA Sentinel-2 MSI L2A, via Microsoft Planetary Computer STAC.
 

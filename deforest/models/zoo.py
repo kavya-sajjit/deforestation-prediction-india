@@ -188,7 +188,17 @@ def inflate_first_layer(trunk: nn.Module, alpha: float = 1.0) -> None:
     trunk.conv1 = new
 
 
-def build_model(variant: str, n_channels: int, download: bool = True, alpha: float = 1.0) -> nn.Module:
+_DEFAULT_T = object()
+
+
+def build_model(variant: str, n_channels: int, download: bool = True, alpha: float = 1.0,
+                logit_temperature=_DEFAULT_T) -> nn.Module:
+    """logit_temperature only affects the from-scratch "bcos" variant. Leave it at the default for new
+    models; pass the value stored in a checkpoint (None for checkpoints older than the setting) when
+    reloading weights, so old models are rebuilt exactly as they were trained."""
+    if logit_temperature is _DEFAULT_T:
+        from ..config import SCRATCH_LOGIT_TEMPERATURE
+        logit_temperature = SCRATCH_LOGIT_TEMPERATURE
     if variant == "cnn":
         import torchvision
         m = torchvision.models.resnet18(weights=None, num_classes=2)
@@ -198,7 +208,7 @@ def build_model(variant: str, n_channels: int, download: bool = True, alpha: flo
     if variant == "bcos":
         from bcos.models.resnet import resnet18
         trunk = resnet18(in_chans=2 * n_channels, num_classes=2, small_inputs=True)
-        trunk.logit_layer = LogitLayer(logit_bias=None)
+        trunk.logit_layer = LogitLayer(logit_temperature=logit_temperature, logit_bias=None)
         return BcosNet(trunk)
     if variant in PRETRAINED:
         trunk = _pretrained_trunk(download)

@@ -94,6 +94,18 @@ def test_end_to_end_quick(data_dir, tmp_path):
     assert (out / "SUMMARY.md").exists()
     assert (out / "forecast" / "block" / "bcos_rgbn_hist" / "fold0" / "explanations.json").exists()
     assert (out / "forecast" / "block" / "bcos_rgbn_hist" / "fold0" / "band_ablation.csv").exists()
+    import pandas as pd
+    pp = pd.read_csv(out / "forecast" / "block" / "bcos_rgbn_hist" / "fold0" / "explanations_per_patch.csv")
+    shares = pp[[c for c in pp.columns if c.startswith("share_")]]
+    assert shares.shape[1] == 6 and np.allclose(shares.sum(axis=1), 1, atol=1e-4)   # 4 bands + 2 history channels
+    assert pp.loc[pp.y == 1, "deletion_gap"].notna().all() and pp.loc[pp.y == 0, "deletion_gap"].isna().all()
+    # backfill: delete the per-patch file and rebuild it from the saved weights, without retraining
+    from deforest import shift
+    f = out / "forecast" / "block" / "bcos_pre_project" / "fold0" / "explanations_per_patch.csv"
+    before = pd.read_csv(f); f.unlink()
+    assert shift.backfill(data_dir, str(out)) == 1
+    after = pd.read_csv(f)
+    assert np.allclose(before["loc"].fillna(-1), after["loc"].fillna(-1), atol=1e-4)
 
 
 def test_risk_calibration_and_hotspots():
@@ -118,3 +130,69 @@ def test_risk_calibration_and_hotspots():
     spots = R.hotspots(cells, lon, lat, 5, 5)
     assert len(spots) == 1 and spots[0]["squares"] == 4
     assert all(c.get("h") == 1 for c in cells[:4]) and "h" not in cells[4]
+
+
+def test_deletion_gap_separates_true_from_wrong_explanations():
+    """A toy model that only looks at the top-left quarter of the image.
+
+    An explanation pointing at that quarter must get a clearly positive deletion
+    gap; one pointing at the opposite corner must not.
+    """
+    from deforest.shift import deletion_gap
+    torch.manual_seed(0)
+    x = torch.rand(8, 3, 16, 16) * 0.2 + 0.8                  # bright everywhere
+    p_loss = lambda x, nd: torch.sigmoid(8 * (x[:, :2, :8, :8].mean(dim=(1, 2, 3)) - 0.5))
+    right, wrong = torch.zeros(8, 16, 16), torch.zeros(8, 16, 16)
+    right[:, :8, :8], wrong[:, 8:, 8:] = 1.0, 1.0
+    fill = torch.zeros(3)
+    g_right = deletion_gap(p_loss, x, right, fill, n_img=2)
+    g_wrong = deletion_gap(p_loss, x, wrong, fill, n_img=2)
+    assert g_right["gap"].mean() > 0.2
+    assert g_wrong["gap"].mean() < 0
+    assert np.all(np.diff(g_right["attr"], axis=1) <= 1e-6)    # removing more evidence never raises P(loss)
+    x3 = x.clone(); x3[:, 2] = 0.123                           # channel 2 is not imagery: must be left alone
+    assert torch.allclose(p_loss(x3, None), p_loss(x, None))
+
+
+def test_shift_report_compares_the_same_patches(tmp_path):
+    """Hand-made results: the model ranks perfectly in-distribution and at chance on the unseen region."""
+    import pandas as pd
+    from deforest import shift
+    rng = np.random.default_rng(0)
+    n = 400
+    base = pd.DataFrame(dict(idx=np.arange(n), region="western_ghats", block_r=np.arange(n) // 10, block_c=0,
+                             y=(np.arange(n) % 4 == 0).astype(int), split="test", threshold=0.5))
+    expl = base[base.y == 1][["idx", "region", "block_r", "block_c", "y"]].assign(chance=0.05)
+
+    def write(scheme, run, p, loc, gap, shares, rows=slice(None)):
+        d = tmp_path / "forecast" / scheme / "bcos_rgbn_hist" / run
+        d.mkdir(parents=True)
+        base.assign(p=p).iloc[rows].to_csv(d / "preds.csv", index=False)
+        e = expl.assign(loc=loc, deletion_gap=gap, p=0.5)
+        for k, v in shares.items():
+            e[f"share_{k}"] = v
+        e[e.idx.isin(base.iloc[rows].idx)].to_csv(d / "explanations_per_patch.csv", index=False)
+
+    good = base.y * 0.8 + 0.1
+    half = slice(0, n // 2)
+    write("block", "fold0", good, 0.50, 0.30, dict(red=0.5, nir=0.5), half)       # only half the region has an ID run
+    write("loro", "test_western_ghats", rng.uniform(0, 1, n), 0.05, 0.0, dict(red=0.9, nir=0.1))
+    text = shift.report(str(tmp_path))
+    r = pd.read_csv(tmp_path / "shift.csv").iloc[0]
+    assert r.patches == n // 2                                   # compared only where both runs scored the patch
+    assert r.ap_in == 1.0 and r.ap_out < 0.6 and r.ap_drop_lo > 0
+    assert abs(r.lift_in - 10) < 1e-6 and abs(r.lift_out - 1) < 1e-6
+    assert abs(r.lift_retention) < 1e-6 and abs(r.del_retention) < 1e-6
+    assert r.expl_positives == 50 and "explained" in text
+    assert 0.2 < r.reliance_js < 0.5
+    assert "1 of 5 spatial folds" in text
+    assert (tmp_path / "shift_forecast.png").exists()
+
+
+def test_no_retention_ratio_when_in_distribution_is_near_chance():
+    """A ratio of two near-chance numbers is noise and must not be printed."""
+    from deforest.shift import _retention
+    assert np.isnan(_retention(0.014, 0.012, 0.012, 0.05, 100))        # AP barely above chance
+    assert np.isnan(_retention(1.11, 2.00, 1.0, 0.5, 100))             # localisation 1.11x: was "894% kept"
+    assert np.isnan(_retention(0.9, 0.5, 0.2, 0.05, 16))               # too few loss patches
+    assert abs(_retention(0.6, 0.4, 0.2, 0.05, 100) - 0.5) < 1e-9

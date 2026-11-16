@@ -85,7 +85,12 @@ SEED = 42
 class TrainConfig:
     epochs: int = 30
     batch_size: int = 64
-    lr_scratch: float = 1e-3
+    lr_scratch: float = 1e-3             # standard CNN trained from scratch
+    # B-cos from scratch needs a smaller step. At 1e-3 `bcos_bitemporal` collapsed to cross-entropy
+    # ln 2 after one epoch and stayed there; on the same fold (scripts/diagnose_bcos_scratch.py,
+    # 15 Nov 2026, 10 epochs, chosen on validation AP) 3e-4 left the plateau only at epoch 7 and
+    # 1e-4 never entered it: validation AP 0.41 / 0.67 / 0.89, test AP 0.41 / 0.66 / 0.89.
+    lr_bcos_scratch: float = 1e-4
     lr_pretrained: float = 1e-4
     weight_decay: float = 1e-4
     patience: int = 8                    # early stopping on validation AP
@@ -105,3 +110,19 @@ RISK_TIERS = [("high", 0.50), ("elevated", 0.25), ("low", 0.0)]   # (name, minim
 HOTSPOT_TIERS = ("high", "elevated")     # squares that can form a hotspot
 HOTSPOT_MIN_SQUARES = 2                  # ignore isolated single squares
 HOTSPOT_TOP = 10                         # hotspots kept per region
+
+
+# Logit temperature for B-cos networks trained from scratch (logits are divided by it; None = off).
+#
+# Why the setting exists: on the real detection data `bcos_bitemporal` sat at cross-entropy ln 2 for
+# 12+ epochs and ended at chance. At initialisation a from-scratch B-cos ResNet-18 has logits about
+# 5x smaller than a standard one (std of the logit difference 0.017 against 0.095). A temperature is
+# one positive constant on both classes, so the model stays exactly linear in its input for a fixed
+# dynamic weight and contribution maps still sum to the logit difference.
+#
+# Why it is None: it does not help. On the real data (scripts/diagnose_bcos_scratch.py, 15 Nov 2026)
+# the loss pinned to 0.693 from epoch 1 with no temperature and with 0.5, 0.2 and 0.1 alike, and on
+# synthetic data 0.02 made the first-epoch loss explode. The cause of the plateau is something else;
+# the script's --lrs option tests the learning rate next. The setting is kept so that a value can be
+# tried without code changes: runs trained with a different value are treated as stale and re-run.
+SCRATCH_LOGIT_TEMPERATURE = None
