@@ -15,6 +15,25 @@ browser with a free Google Colab account.
 | README results block, figures, risk maps | not regenerated since the retraining |
 | Paper | plan and first findings in [`paper/PLAN.md`](paper/PLAN.md); nothing written |
 
+## The retraining started on 16 November: check before trusting it
+
+A retraining of the four from-scratch B-cos models (block folds, then unseen regions) was started on
+16 November around 15:55 IST from a **second Google account**, not the one that holds the earlier
+results. Contact with that Colab session was lost about 16 minutes in, so whether it finished is unknown.
+
+To find out, mount that account's Drive in Colab and run:
+
+```
+!tail -3 $WORK/retrain_bcos_block.log; tail -3 $WORK/retrain_bcos_loro.log
+!grep -l '"lr": 0.0001' $WORK/results/*/*/bcos_*/*/metrics.json | wc -l    # 36 means all runs are done
+```
+
+Then pick one Drive and keep everything there. Simplest: copy `results/` from the second account's
+`deforestation-v2` folder into the first account's (keep both `forecast` and `detect`, let newer files
+replace older ones), and run step 3 below from the first account. Runs that are already finished at
+the new learning rate are skipped. Before merging, check that both Drives hold the same dataset:
+`!md5sum $WORK/data/v2/*/metadata.csv` must print the same values on both.
+
 ## Where the files are
 
 - **GitHub** (this repo): code, plan, snapshot of results.
