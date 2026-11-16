@@ -19,6 +19,16 @@ venv/
 .ipynb_checkpoints/
 
 # OS
-.DS_Storedata/v2/
+.DS_Store
+
+# v2 data and results (rebuilt by the pipeline)
+data/v2/
 results/**/model.pt
 maps/*.tif
+
+# large binaries live on the GitHub Release `v1-assets` (python scripts/fetch_assets.py)
+models/*.pth
+models/*.pt
+models/*.pkl
+data/satellite/
+.pytest_cache/

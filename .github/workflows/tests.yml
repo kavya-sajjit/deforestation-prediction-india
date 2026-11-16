@@ -1,0 +1,25 @@
+name: tests
+on:
+  push:
+    paths-ignore: ["web/**", "**.md"]
+  pull_request:
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch
+        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      - name: Install official B-cos v2 (without its Hugging Face demo submodule)
+        run: |
+          git clone --depth 1 https://github.com/B-cos/B-cos-v2.git /tmp/bcos
+          pip install /tmp/bcos
+      - name: Install the rest
+        run: grep -v '^bcos' requirements.txt | pip install -r /dev/stdin
+      - name: Run tests (synthetic data, offline)
+        run: pytest -q tests/
