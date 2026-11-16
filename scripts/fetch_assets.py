@@ -19,9 +19,9 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://github.com/kavya-sajjit/deforestation-prediction-india/releases/download/v1-assets/"
 ASSETS = {
-    "v1_models": "e01a742f805684a69282528bbdec33446aa5fcb4f63bf7915f29059bfeb3cc5f",
-    "gfw_tables": "d5cbb2fc37ac594e025d04b8e1ec0a06b3b270e23d6c9069a0c349a9d32852a4",
-    "v1_satellite_png": "fe76bda4d7e2de3d5b606f30ce4c4a799f14ed3db9337fb791ecdbc8c8ca99c1",
+    "v1_models": "0b245c2fc3fc8dbfbab53401bc1c66d6b2e9dc8a37a9e4f437fd5ce6a90214e7",
+    "gfw_tables": "15c02b2e9017a49f496fb636a2ac5cc45b52fae5e4904e9d4aee81a6192f4832",
+    "v1_satellite_png": "ca79f1092d268c03c0276963b885808ae7adb77105564336dd3f54d6af9fd0f1",
 }
 
 
