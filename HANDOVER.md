@@ -32,7 +32,7 @@ Then pick one Drive and keep everything there. Simplest: copy `results/` from th
 `deforestation-v2` folder into the first account's (keep both `forecast` and `detect`, let newer files
 replace older ones), and run step 3 below from the first account. Runs that are already finished at
 the new learning rate are skipped. Before merging, check that both Drives hold the same dataset:
-`!md5sum $WORK/data/v2/*/metadata.csv` must print the same values on both.
+`!md5sum $WORK/data/v2/*.csv` must print the same values on both.
 
 ## Where the files are
 
