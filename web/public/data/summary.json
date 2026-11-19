@@ -1,178 +1,404 @@
 {
- "note": "Interim results: mean over 3 of 5 spatial folds (core profile). Regenerate with python -m deforest.web_export after the full run.",
  "tasks": {
   "forecast": [
    {
     "experiment": "bcos_pre_inflate",
-    "ap": 0.4524,
-    "ap_sd": 0.0424,
-    "roc_auc": 0.8316,
-    "mcc": 0.3963,
-    "capture_top10": 0.3573,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.4655,
+    "ap_sd": 0.0405,
+    "roc_auc": 0.8363,
+    "mcc": 0.3814,
+    "capture_top10": 0.3745,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "bcos_pre_ndvi",
-    "ap": 0.453,
-    "ap_sd": 0.0555,
-    "roc_auc": 0.8354,
-    "mcc": 0.4008,
-    "capture_top10": 0.3602,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.4638,
+    "ap_sd": 0.0397,
+    "roc_auc": 0.8348,
+    "mcc": 0.3865,
+    "capture_top10": 0.3751,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "bcos_pre_project",
-    "ap": 0.4676,
-    "ap_sd": 0.0545,
-    "roc_auc": 0.8367,
-    "mcc": 0.399,
-    "capture_top10": 0.3872,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.4686,
+    "ap_sd": 0.0481,
+    "roc_auc": 0.8336,
+    "mcc": 0.3767,
+    "capture_top10": 0.3835,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "bcos_pre_rgb",
-    "ap": 0.4684,
-    "ap_sd": 0.0556,
-    "roc_auc": 0.8371,
-    "mcc": 0.396,
-    "capture_top10": 0.3789,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 4,
+    "ap": 0.4486,
+    "ap_sd": 0.0521,
+    "roc_auc": 0.8324,
+    "mcc": 0.3705,
+    "capture_top10": 0.3767,
+    "chance_ap": 0.1338,
+    "test_patches": 4789,
+    "test_positives": 637
    },
    {
     "experiment": "bcos_rgb",
-    "ap": 0.1924,
-    "ap_sd": 0.033,
-    "roc_auc": 0.6816,
-    "mcc": 0.2423,
-    "capture_top10": 0.0791,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.2117,
+    "ap_sd": 0.0315,
+    "roc_auc": 0.7118,
+    "mcc": 0.2613,
+    "capture_top10": 0.1202,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "bcos_rgbn",
-    "ap": 0.2466,
-    "ap_sd": 0.0209,
-    "roc_auc": 0.7275,
-    "mcc": 0.2535,
-    "capture_top10": 0.1996,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.2293,
+    "ap_sd": 0.0252,
+    "roc_auc": 0.7054,
+    "mcc": 0.2172,
+    "capture_top10": 0.1912,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "bcos_rgbn_hist",
-    "ap": 0.4649,
-    "ap_sd": 0.0697,
-    "roc_auc": 0.8528,
-    "mcc": 0.367,
-    "capture_top10": 0.3747,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.4659,
+    "ap_sd": 0.0775,
+    "roc_auc": 0.8425,
+    "mcc": 0.3528,
+    "capture_top10": 0.3772,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "cnn_rgbn",
-    "ap": 0.4475,
-    "ap_sd": 0.0093,
-    "roc_auc": 0.8268,
-    "mcc": 0.3562,
-    "capture_top10": 0.3429,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 4,
+    "ap": 0.4123,
+    "ap_sd": 0.0613,
+    "roc_auc": 0.8147,
+    "mcc": 0.327,
+    "capture_top10": 0.3237,
+    "chance_ap": 0.1338,
+    "test_patches": 4789,
+    "test_positives": 637
    },
    {
     "experiment": "cnn_rgbn_hist",
-    "ap": 0.5268,
-    "ap_sd": 0.0438,
-    "roc_auc": 0.8746,
-    "mcc": 0.4443,
-    "capture_top10": 0.415,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.5355,
+    "ap_sd": 0.0555,
+    "roc_auc": 0.876,
+    "mcc": 0.4343,
+    "capture_top10": 0.4305,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "gbm",
-    "ap": 0.5013,
-    "ap_sd": 0.0169,
-    "roc_auc": 0.8639,
-    "mcc": 0.4429,
-    "capture_top10": 0.3899,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.5041,
+    "ap_sd": 0.0334,
+    "roc_auc": 0.8628,
+    "mcc": 0.4279,
+    "capture_top10": 0.4023,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
    },
    {
     "experiment": "history_lr",
-    "ap": 0.423,
-    "ap_sd": 0.0389,
-    "roc_auc": 0.845,
-    "mcc": 0.37,
-    "capture_top10": 0.3625,
-    "chance_ap": 0.1381,
-    "splits": 3,
-    "test_patches": 3516,
-    "test_positives": 483
+    "splits": 5,
+    "ap": 0.4312,
+    "ap_sd": 0.0703,
+    "roc_auc": 0.8374,
+    "mcc": 0.3544,
+    "capture_top10": 0.3665,
+    "chance_ap": 0.1318,
+    "test_patches": 5748,
+    "test_positives": 756
+   }
+  ],
+  "detect": [
+   {
+    "experiment": "bcos_bitemporal",
+    "splits": 5,
+    "ap": 0.3081,
+    "ap_sd": 0.0729,
+    "roc_auc": 0.6972,
+    "mcc": 0.3363,
+    "capture_top10": 0.1276,
+    "chance_ap": 0.2102,
+    "test_patches": 6246,
+    "test_positives": 1308
+   },
+   {
+    "experiment": "cnn_bitemporal",
+    "splits": 5,
+    "ap": 0.9214,
+    "ap_sd": 0.0183,
+    "roc_auc": 0.9669,
+    "mcc": 0.7982,
+    "capture_top10": 0.4769,
+    "chance_ap": 0.2102,
+    "test_patches": 6246,
+    "test_positives": 1308
+   },
+   {
+    "experiment": "gbm",
+    "splits": 5,
+    "ap": 0.8585,
+    "ap_sd": 0.0254,
+    "roc_auc": 0.9447,
+    "mcc": 0.7218,
+    "capture_top10": 0.4575,
+    "chance_ap": 0.2102,
+    "test_patches": 6246,
+    "test_positives": 1308
    }
   ]
  },
  "dataset": [
   {
    "region": "western_ghats",
+   "bbox": [
+    75.75,
+    11.85,
+    76.05,
+    12.15
+   ],
+   "biome": "Tropical evergreen / moist deciduous (Kodagu-Wayanad)",
+   "crs": "EPSG:32643",
+   "transform": [
+    10.0,
+    0.0,
+    581600.0,
+    0.0,
+    -10.0,
+    1343370.0
+   ],
+   "shape": [
+    3330,
+    3278
+   ],
+   "scenes_t0": 8,
+   "scenes_t1": 8,
    "patches": 2564,
    "forecast_pos": 150,
    "forecast_neg": 1902,
    "detect_pos": 193,
    "detect_neg": 1870,
-   "biome": "Tropical evergreen / moist deciduous (Kodagu-Wayanad)"
+   "hansen": "GFC-2023-v1.11"
   },
   {
    "region": "odisha_mining",
+   "bbox": [
+    85.25,
+    21.85,
+    85.55,
+    22.15
+   ],
+   "biome": "Sal forest with open-cast iron-ore mining (Keonjhar)",
+   "crs": "EPSG:32645",
+   "transform": [
+    10.0,
+    0.0,
+    319150.0,
+    0.0,
+    -10.0,
+    2450470.0
+   ],
+   "shape": [
+    3354,
+    3133
+   ],
+   "scenes_t0": 8,
+   "scenes_t1": 8,
    "patches": 796,
    "forecast_pos": 25,
    "forecast_neg": 704,
    "detect_pos": 37,
    "detect_neg": 700,
-   "biome": "Sal forest with open-cast iron-ore mining (Keonjhar)"
+   "hansen": "GFC-2023-v1.11"
   },
   {
    "region": "northeast_hills",
+   "bbox": [
+    92.6,
+    22.8,
+    92.9,
+    23.1
+   ],
+   "biome": "Subtropical hill forest with shifting cultivation (Mizoram)",
+   "crs": "EPSG:32646",
+   "transform": [
+    10.0,
+    0.0,
+    458940.0,
+    0.0,
+    -10.0,
+    2554650.0
+   ],
+   "shape": [
+    3327,
+    3082
+   ],
+   "scenes_t0": 8,
+   "scenes_t1": 8,
    "patches": 2443,
    "forecast_pos": 565,
    "forecast_neg": 1060,
    "detect_pos": 1056,
    "detect_neg": 1045,
-   "biome": "Subtropical hill forest with shifting cultivation (Mizoram)"
+   "hansen": "GFC-2023-v1.11"
   },
   {
    "region": "central_india",
+   "bbox": [
+    80.4,
+    21.9,
+    80.7,
+    22.2
+   ],
+   "biome": "Mixed deciduous and teak forest (Balaghat)",
+   "crs": "EPSG:32644",
+   "transform": [
+    10.0,
+    0.0,
+    438020.0,
+    0.0,
+    -10.0,
+    2455090.0
+   ],
+   "shape": [
+    3331,
+    3106
+   ],
+   "scenes_t0": 8,
+   "scenes_t1": 8,
    "patches": 1373,
    "forecast_pos": 16,
    "forecast_neg": 1326,
    "detect_pos": 22,
    "detect_neg": 1323,
-   "biome": "Mixed deciduous and teak forest (Balaghat)"
+   "hansen": "GFC-2023-v1.11"
   }
  ],
- "risk_model": "bcos_rgbn_hist"
+ "regions": [
+  {
+   "region": "western_ghats",
+   "name": "Western Ghats",
+   "biome": "Tropical evergreen / moist deciduous (Kodagu-Wayanad)",
+   "bbox": [
+    75.75,
+    11.85,
+    76.05,
+    12.15
+   ],
+   "patches": 2602,
+   "synthetic": false
+  },
+  {
+   "region": "odisha_mining",
+   "name": "Odisha Mining",
+   "biome": "Sal forest with open-cast iron-ore mining (Keonjhar)",
+   "bbox": [
+    85.25,
+    21.85,
+    85.55,
+    22.15
+   ],
+   "patches": 1039,
+   "synthetic": false
+  },
+  {
+   "region": "northeast_hills",
+   "name": "Northeast Hills",
+   "biome": "Subtropical hill forest with shifting cultivation (Mizoram)",
+   "bbox": [
+    92.6,
+    22.8,
+    92.9,
+    23.1
+   ],
+   "patches": 2446,
+   "synthetic": false
+  },
+  {
+   "region": "central_india",
+   "name": "Central India",
+   "biome": "Mixed deciduous and teak forest (Balaghat)",
+   "bbox": [
+    80.4,
+    21.9,
+    80.7,
+    22.2
+   ],
+   "patches": 1505,
+   "synthetic": false
+  }
+ ],
+ "risk_model": "bcos_rgbn_hist",
+ "risk": {
+  "model": "bcos_rgbn_hist",
+  "base_rate": 0.1315240083507307,
+  "brier_raw": 0.21298611769929726,
+  "brier_calibrated": 0.10210741995450306,
+  "brier_baseline": 0.11422544357808763,
+  "ece_raw": 0.29658498864613775,
+  "ece_calibrated": 0.01787466178718258,
+  "tiers": [
+   {
+    "tier": "high",
+    "min_risk": 0.5,
+    "squares": 154,
+    "lost": 89,
+    "hit_rate": 0.577922077922078,
+    "ci": [
+     0.4366515426497278,
+     0.6451612903225806
+    ],
+    "share_of_all_loss": 0.11772486772486772
+   },
+   {
+    "tier": "elevated",
+    "min_risk": 0.25,
+    "squares": 988,
+    "lost": 344,
+    "hit_rate": 0.3481781376518219,
+    "ci": [
+     0.2823768625641825,
+     0.4158371389029379
+    ],
+    "share_of_all_loss": 0.455026455026455
+   },
+   {
+    "tier": "low",
+    "min_risk": 0.0,
+    "squares": 4606,
+    "lost": 323,
+    "hit_rate": 0.07012592270950933,
+    "ci": [
+     0.053542702187136894,
+     0.09093119434440669
+    ],
+    "share_of_all_loss": 0.42724867724867727
+   }
+  ]
+ }
 }
