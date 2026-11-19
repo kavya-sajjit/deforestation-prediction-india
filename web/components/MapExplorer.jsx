@@ -72,7 +72,8 @@ export default function MapExplorer() {
   useEffect(() => {
     let m, cancelled = false;
     (async () => {
-      const maplibregl = (await import("maplibre-gl")).default;
+      const mod = await import("maplibre-gl");
+      const maplibregl = mod.Map ? mod : (mod.default || mod);
       if (cancelled || !box.current) return;
       m = new maplibregl.Map({ container: box.current, style: BASEMAP, center: [80, 22], zoom: 4,
                                attributionControl: { compact: true }, dragRotate: false });
