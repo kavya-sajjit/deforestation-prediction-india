@@ -101,6 +101,9 @@ section.block p.intro { color: var(--muted); max-width: 700px; margin: 0 0 36px;
 .bars i { flex: 1; background: var(--line); min-height: 1px; }
 .bars i.on { background: var(--rust); }
 .bars i.cur { background: var(--text); }
+.bars i.pj { background: transparent; outline: 1px dashed var(--line); outline-offset: -1px; }
+.bars i.pj.on { background: transparent; outline-color: var(--ochre); }
+.bars i.pj.cur { background: var(--ochre); }
 .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-family: var(--mono); font-size: 13px; }
 .kv span { color: var(--muted); }
 .legend { display: grid; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }

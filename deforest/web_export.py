@@ -27,34 +27,58 @@ RISK_MODELS = ["bcos_rgbn_hist", "cnn_rgbn_hist", "gbm", "history_lr"]
 
 
 # --------------------------------------------------------------------------- Hansen per year
-def _hansen_rasters(data_dir: str, region: str, info: dict):
-    """(treecover2000, lossyear) on the patch grid; cached as <region>_hansen.npz."""
-    cache = os.path.join(data_dir, f"{region}_hansen.npz")
-    if os.path.exists(cache):
-        z = np.load(cache)
-        return z["treecover"], z["lossyear"]
+# Newest first. The website only needs yearly loss, so it can use a newer release than the one the
+# models were trained on (config.HANSEN_VERSION); the training labels are unaffected.
+WEB_HANSEN_VERSIONS = ("GFC-2025-v1.13", "GFC-2024-v1.12", C.HANSEN_VERSION)
+
+
+def _last_year(version: str) -> int:
+    return int(version.split("-")[1])                      # "GFC-2025-v1.13" -> 2025
+
+
+def _hansen_rasters(data_dir: str, region: str, info: dict, versions=WEB_HANSEN_VERSIONS):
+    """(treecover2000, lossyear, version) on the patch grid; cached as <region>_hansen_<version>.npz."""
     if "transform" not in info:
-        return None, None
+        return None, None, None
+    for v in versions:
+        cache = os.path.join(data_dir, f"{region}_hansen_{v}.npz")
+        if os.path.exists(cache):
+            z = np.load(cache)
+            return z["treecover"], z["lossyear"], v
+    old = os.path.join(data_dir, f"{region}_hansen.npz")    # cache written before versions were tracked
     from affine import Affine
     from .data import hansen
     t = Affine(*info["transform"])
     shape = tuple(info["shape"])
-    tc = hansen.read_layer("treecover2000", info["bbox"], t, info["crs"], shape)
-    ly = hansen.read_layer("lossyear", info["bbox"], t, info["crs"], shape)
-    np.savez_compressed(cache, treecover=tc, lossyear=ly)
-    return tc, ly
+    for v in versions:
+        try:
+            C.HANSEN_VERSION, keep = v, C.HANSEN_VERSION
+            tc = hansen.read_layer("treecover2000", info["bbox"], t, info["crs"], shape)
+            ly = hansen.read_layer("lossyear", info["bbox"], t, info["crs"], shape)
+        except Exception as e:                              # release not published or not reachable
+            print(f"   {v} not available ({type(e).__name__}); trying an older release")
+            continue
+        finally:
+            C.HANSEN_VERSION = keep
+        np.savez_compressed(os.path.join(data_dir, f"{region}_hansen_{v}.npz"), treecover=tc, lossyear=ly)
+        return tc, ly, v
+    if os.path.exists(old):
+        z = np.load(old)
+        return z["treecover"], z["lossyear"], "GFC-2023-v1.11"
+    return None, None, None
 
 
-def _yearly_loss(tc, ly, rows, cols):
-    """Per patch: share of the patch that was forest in 2000, and share lost each year."""
+def _yearly_loss(tc, ly, rows, cols, last_year: int = 2023):
+    """Per patch: share of the patch that was forest in 2000, and share lost each year 2001..last_year."""
     P = C.PATCH
     tc = tc[: rows * P, : cols * P]
     ly = ly[: rows * P, : cols * P]
     forest = (tc >= C.TREECOVER_THRESHOLD)
     f = forest.reshape(rows, P, cols, P).mean(axis=(1, 3))
     yr = np.where(forest, ly, 0).reshape(rows, P, cols, P).transpose(0, 2, 1, 3).reshape(rows, cols, P * P)
-    out = np.zeros((rows, cols, 24), np.float32)
-    for y in range(1, 24):
+    n = last_year - 2000
+    out = np.zeros((rows, cols, n + 1), np.float32)
+    for y in range(1, n + 1):
         out[..., y] = (yr == y).mean(axis=2)
     return f, out
 
@@ -128,10 +152,11 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
             rows, cols = int(m.row.max()) + 1, int(m.col.max()) + 1
         lon, lat = _grid_nodes(info, rows, cols)
 
-        tc, ly = _hansen_rasters(data_dir, region, info) if use_hansen else (None, None)
+        tc, ly, version = _hansen_rasters(data_dir, region, info) if use_hansen else (None, None, None)
+        last = _last_year(version) if version else 2023
         patches = []
         if tc is not None:
-            f2000, yearly = _yearly_loss(tc, ly, rows, cols)
+            f2000, yearly = _yearly_loss(tc, ly, rows, cols, last)
             lookup = {(int(a.row), int(a.col)): i for i, a in m.iterrows()}
             for r in range(rows):
                 for c in range(cols):
@@ -139,7 +164,7 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
                         continue
                     rec = {"r": r, "c": c, "f": round(float(f2000[r, c]), 3)}
                     loss = {str(2000 + y): round(float(yearly[r, c, y]), 4)
-                            for y in range(1, 24) if yearly[r, c, y] > 0}
+                            for y in range(1, last - 2000 + 1) if yearly[r, c, y] > 0}
                     if loss:
                         rec["l"] = loss
                     i = lookup.get((r, c))
@@ -181,15 +206,21 @@ def export(data_dir: str, results: str, out: str, use_hansen: bool = True):
                    biome=C.REGIONS[region]["biome"], bbox=C.REGIONS[region]["bbox"],
                    rows=rows, cols=cols, patch_m=C.PATCH * 10,
                    lon=np.round(lon, 5).tolist(), lat=np.round(lat, 5).tolist(),
-                   risk_model=risk_model, yearly=tc is not None,
+                   risk_model=risk_model, yearly=tc is not None, last_observed=last, hansen=version,
                    synthetic=bool(info.get("synthetic", False)), risk=risk,
                    hotspots=[{k: v for k, v in h.items() if k != "cells"} for h in spots],
                    patches=patches)
+        if tc is not None:                                  # 2026-2036 trend projection, backtested
+            from .projection import run_region
+            proj = run_region(doc)
+            b = proj["backtest"]
+            print(f"   projection to {proj['end']}: backtest AP {b['ap']} (chance {b['chance_ap']}), "
+                  f"projected/actual total {b['total_ratio']}")
         with open(os.path.join(out, f"{region}.json"), "w") as fh:
             json.dump(doc, fh, separators=(",", ":"))
         index.append(dict(region=region, name=doc["name"], biome=doc["biome"], bbox=doc["bbox"],
                           patches=len(patches), synthetic=doc["synthetic"]))
-        print(f"[{region}] {len(patches)} patches, yearly={doc['yearly']}, risk model={risk_model}")
+        print(f"[{region}] {len(patches)} patches, Hansen {version} (observed to {last}), risk model={risk_model}")
 
     summary = _summary(results, data_dir)
     summary["regions"] = index

@@ -63,6 +63,18 @@ the new learning rate are skipped. Before merging, check that both Drives hold t
    `scripts/update_readme.py`), download `results/` without the `model.pt` files, and commit them
    with the README.
 
+## Map to 2036 (added 19 November 2026)
+
+- **Observed loss to 2025.** `deforest.web_export` now reads the newest Hansen release it can reach
+  (GFC-2025-v1.13, then v1.12, then v1.11) for the map only. Training labels still use v1.11.
+- **Projection 2026-2036.** `deforest/projection.py` carries each square's recent clearing pace
+  forward, shrunk towards its region's pace, and backtests itself (history to 2012, scored on every
+  later observed year). The map shows projected years with a dashed outline and a "projected" label,
+  and the panel shows the backtest score and a low/high range. It is a trend scenario, not a model
+  forecast; roads, mines and policy are not inputs.
+- To regenerate: run the first two code cells of the Colab notebook, then section 6. To add the
+  projection to map files you already have, run `python -m deforest.projection web/public/data`.
+
 ## Next steps, in order
 
 1. Finish retraining the four from-scratch B-cos models (step 3 above) and compare with the

@@ -196,3 +196,30 @@ def test_no_retention_ratio_when_in_distribution_is_near_chance():
     assert np.isnan(_retention(1.11, 2.00, 1.0, 0.5, 100))             # localisation 1.11x: was "894% kept"
     assert np.isnan(_retention(0.9, 0.5, 0.2, 0.05, 16))               # too few loss patches
     assert abs(_retention(0.6, 0.4, 0.2, 0.05, 100) - 0.5) < 1e-9
+
+
+def test_projection_recovers_a_constant_rate_and_backtests():
+    """Squares losing a fixed share of their remaining forest each year: the projection must find it."""
+    from deforest import projection as P
+    rng = np.random.default_rng(0)
+    patches = []
+    for i in range(200):
+        f, rate, rem, l = float(rng.uniform(0.4, 1.0)), float(rng.choice([0.0, 0.01, 0.05])), None, {}
+        rem = f
+        for y in range(2001, 2026):
+            lost = rem * rate
+            rem -= lost
+            if lost > 0:
+                l[str(y)] = round(lost, 6)
+        patches.append(dict(r=i // 20, c=i % 20, f=round(f, 3), l=l, true=rate))
+    doc = dict(region="test", patches=patches)
+    pr = P.run_region(doc, end=2036)
+    assert pr["origin"] == 2025 and pr["years"][0] == 2026 and len(doc["patches"][0]["pj"]) == 11
+    b = pr["backtest"]
+    assert b["ap"] > 0.95 and 0.9 < b["total_ratio"] < 1.1
+    for p in doc["patches"]:
+        if p["true"] == 0.05:                       # projected extra loss after 11 years matches the compounding
+            rem = p["f"] * 0.95 ** 25
+            assert abs(p["pj"][-1] - rem * (1 - 0.95 ** 11)) < 0.02
+    assert all(lo <= c + 1e-6 and c <= hi + 1e-6 for lo, c, hi in
+               zip(pr["total_ha"]["low"], pr["total_ha"]["central"], pr["total_ha"]["high"]))
