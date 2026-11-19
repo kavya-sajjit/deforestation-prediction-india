@@ -12,9 +12,11 @@ Method (per region, per square):
                              (squares with little history borrow from the region)
     projection        R(t) = R(T) * (1 - r) ** (t - T)                         for t > T
 
-T is the last observed year. K and s are chosen on an early validation split (history up to 2008,
-scored on 2009-2012) and then tested on a later one it never saw (history up to 2012, scored on every
-year from 2013 to T). The test numbers are what the website shows.
+T is the last observed year. Hansen's annual loss is produced with an updated method from 2011 on,
+and earlier years detect much less loss (the first backtest from 2012 projected 6% of what the
+northeast really lost). So only 2011 onwards is used: K and s are chosen on history up to 2015 scored
+on 2016-2018, and tested on history up to 2018 scored on every year from 2019 to T, which the choice
+never saw. The test numbers are what the website shows.
 
 The low/high range reruns the projection with the other window lengths. It is a spread of
 plausible trend choices, not a statistical confidence interval.
@@ -36,7 +38,8 @@ import numpy as np
 
 PATCH_HA = 40.96            # 640 m x 640 m
 END = 2036
-WINDOWS = (3, 5, 8)         # years of history used for the rate
+WINDOWS = (3, 5)            # years of history used for the rate
+FIRST_CONSISTENT = 2011     # Hansen annual loss is comparable from here on
 SHRINK = (0.0, 2.0, 5.0, 10.0)
 EVENT = 0.02                # "lost at least 2% of its remaining forest", as for the risk model
 
@@ -114,11 +117,11 @@ def score(f, loss, y0, T, K, s, until):
     )
 
 
-def choose(f, loss, y0, val_origin=2008, val_until=2012):
+def choose(f, loss, y0, val_origin=2015, val_until=2018):
     """Pick (K, s) with the lowest per-square error on the validation split."""
     best = None
     for K in WINDOWS:
-        if val_origin - K + 1 < y0:
+        if val_origin - K + 1 < max(y0, FIRST_CONSISTENT):
             continue
         for s in SHRINK:
             m = score(f, loss, y0, val_origin, K, s, val_until)["mse"]
@@ -128,7 +131,7 @@ def choose(f, loss, y0, val_origin=2008, val_until=2012):
 
 
 # --------------------------------------------------------------------------- per region
-def run_region(doc: dict, end: int = END, test_origin: int = 2012) -> dict:
+def run_region(doc: dict, end: int = END, test_origin: int = 2018) -> dict:
     f, loss, y0, T = _arrays(doc)
     K, s = choose(f, loss, y0)
     test = score(f, loss, y0, test_origin, K, s, T)
@@ -151,7 +154,7 @@ def run_region(doc: dict, end: int = END, test_origin: int = 2012) -> dict:
         remaining_ha=round(float(_remaining(f, loss, y0, T).sum() * PATCH_HA), 1),
         backtest=test,
         method="recent clearing rate per square, shrunk to the region rate, projected forward; "
-               "backtested from 2012 on every later observed year",
+               "backtested from 2018 on every later observed year (Hansen years from 2011 only)",
     )
     return doc["projection"]
 

@@ -1,0 +1,378 @@
+{
+ "central_india": {
+  "origin": 2023,
+  "end": 2036,
+  "window": 3,
+  "shrink": 10.0,
+  "region_rate": 0.00021,
+  "total_ha": {
+   "central": [
+    9.0,
+    18.0,
+    26.9,
+    35.8,
+    44.7,
+    53.5,
+    62.3,
+    71.1,
+    79.9,
+    88.6,
+    97.3,
+    106.0,
+    114.6
+   ],
+   "low": [
+    9.0,
+    18.0,
+    26.9,
+    35.8,
+    44.7,
+    53.5,
+    62.3,
+    71.1,
+    79.9,
+    88.6,
+    97.3,
+    106.0,
+    114.6
+   ],
+   "high": [
+    15.2,
+    30.2,
+    45.3,
+    60.2,
+    75.1,
+    89.9,
+    104.6,
+    119.3,
+    133.9,
+    148.5,
+    163.0,
+    177.4,
+    191.8
+   ]
+  },
+  "remaining_ha": 43862.2,
+  "backtest": {
+   "origin": 2018,
+   "until": 2023,
+   "squares": 1504,
+   "events": 35,
+   "chance_ap": 0.0233,
+   "ap": 0.0524,
+   "ap_last_year_only": 0.0453,
+   "spearman": -0.0255,
+   "total_ratio": 3.534,
+   "by_year": [
+    {
+     "year": 2019,
+     "projected_ha": 54.9,
+     "actual_ha": 7.6
+    },
+    {
+     "year": 2020,
+     "projected_ha": 109.6,
+     "actual_ha": 49.6
+    },
+    {
+     "year": 2021,
+     "projected_ha": 163.9,
+     "actual_ha": 54.0
+    },
+    {
+     "year": 2022,
+     "projected_ha": 217.8,
+     "actual_ha": 68.8
+    },
+    {
+     "year": 2023,
+     "projected_ha": 271.5,
+     "actual_ha": 76.8
+    }
+   ]
+  },
+  "method": "recent clearing rate per square, shrunk to the region rate, projected forward; backtested from 2018 on every later observed year (Hansen years from 2011 only)"
+ },
+ "northeast_hills": {
+  "origin": 2023,
+  "end": 2036,
+  "window": 3,
+  "shrink": 10.0,
+  "region_rate": 0.01111,
+  "total_ha": {
+   "central": [
+    931.1,
+    1849.0,
+    2753.9,
+    3646.1,
+    4525.9,
+    5393.6,
+    6249.4,
+    7093.6,
+    7926.5,
+    8748.2,
+    9559.1,
+    10359.2,
+    11148.9
+   ],
+   "low": [
+    931.1,
+    1849.0,
+    2753.9,
+    3646.1,
+    4525.9,
+    5393.6,
+    6249.4,
+    7093.6,
+    7926.5,
+    8748.2,
+    9559.1,
+    10359.2,
+    11148.9
+   ],
+   "high": [
+    944.4,
+    1873.1,
+    2786.6,
+    3685.5,
+    4570.2,
+    5441.2,
+    6298.8,
+    7143.3,
+    7975.3,
+    8794.9,
+    9602.5,
+    10398.3,
+    11182.7
+   ]
+  },
+  "remaining_ha": 84345.2,
+  "backtest": {
+   "origin": 2018,
+   "until": 2023,
+   "squares": 2446,
+   "events": 1078,
+   "chance_ap": 0.4407,
+   "ap": 0.5539,
+   "ap_last_year_only": 0.5407,
+   "spearman": 0.1281,
+   "total_ratio": 1.143,
+   "by_year": [
+    {
+     "year": 2019,
+     "projected_ha": 1170.1,
+     "actual_ha": 1132.5
+    },
+    {
+     "year": 2020,
+     "projected_ha": 2320.8,
+     "actual_ha": 2085.4
+    },
+    {
+     "year": 2021,
+     "projected_ha": 3452.8,
+     "actual_ha": 3401.4
+    },
+    {
+     "year": 2022,
+     "projected_ha": 4566.3,
+     "actual_ha": 4191.5
+    },
+    {
+     "year": 2023,
+     "projected_ha": 5662.0,
+     "actual_ha": 4955.0
+    }
+   ]
+  },
+  "method": "recent clearing rate per square, shrunk to the region rate, projected forward; backtested from 2018 on every later observed year (Hansen years from 2011 only)"
+ },
+ "odisha_mining": {
+  "origin": 2023,
+  "end": 2036,
+  "window": 3,
+  "shrink": 10.0,
+  "region_rate": 0.00172,
+  "total_ha": {
+   "central": [
+    39.1,
+    78.0,
+    116.6,
+    154.9,
+    193.1,
+    231.0,
+    268.7,
+    306.1,
+    343.4,
+    380.5,
+    417.4,
+    454.1,
+    490.6
+   ],
+   "low": [
+    33.3,
+    66.3,
+    99.1,
+    131.6,
+    164.0,
+    196.1,
+    227.9,
+    259.6,
+    291.1,
+    322.4,
+    353.5,
+    384.4,
+    415.1
+   ],
+   "high": [
+    39.1,
+    78.0,
+    116.6,
+    154.9,
+    193.1,
+    231.0,
+    268.7,
+    306.1,
+    343.4,
+    380.5,
+    417.4,
+    454.1,
+    490.6
+   ]
+  },
+  "remaining_ha": 23079.6,
+  "backtest": {
+   "origin": 2018,
+   "until": 2023,
+   "squares": 1039,
+   "events": 62,
+   "chance_ap": 0.0597,
+   "ap": 0.178,
+   "ap_last_year_only": 0.2497,
+   "spearman": 0.1391,
+   "total_ratio": 0.712,
+   "by_year": [
+    {
+     "year": 2019,
+     "projected_ha": 24.6,
+     "actual_ha": 20.0
+    },
+    {
+     "year": 2020,
+     "projected_ha": 49.2,
+     "actual_ha": 52.2
+    },
+    {
+     "year": 2021,
+     "projected_ha": 73.6,
+     "actual_ha": 64.0
+    },
+    {
+     "year": 2022,
+     "projected_ha": 97.9,
+     "actual_ha": 120.9
+    },
+    {
+     "year": 2023,
+     "projected_ha": 122.1,
+     "actual_ha": 171.4
+    }
+   ]
+  },
+  "method": "recent clearing rate per square, shrunk to the region rate, projected forward; backtested from 2018 on every later observed year (Hansen years from 2011 only)"
+ },
+ "western_ghats": {
+  "origin": 2023,
+  "end": 2036,
+  "window": 5,
+  "shrink": 10.0,
+  "region_rate": 0.00124,
+  "total_ha": {
+   "central": [
+    110.2,
+    220.1,
+    329.7,
+    438.9,
+    547.7,
+    656.2,
+    764.4,
+    872.3,
+    979.8,
+    1087.1,
+    1194.0,
+    1300.6,
+    1406.9
+   ],
+   "low": [
+    110.2,
+    220.1,
+    329.7,
+    438.9,
+    547.7,
+    656.2,
+    764.4,
+    872.3,
+    979.8,
+    1087.1,
+    1194.0,
+    1300.6,
+    1406.9
+   ],
+   "high": [
+    130.6,
+    260.8,
+    390.6,
+    520.2,
+    649.3,
+    778.1,
+    906.6,
+    1034.8,
+    1162.6,
+    1290.1,
+    1417.2,
+    1544.1,
+    1670.6
+   ]
+  },
+  "remaining_ha": 89355.9,
+  "backtest": {
+   "origin": 2018,
+   "until": 2023,
+   "squares": 2602,
+   "events": 258,
+   "chance_ap": 0.0992,
+   "ap": 0.2002,
+   "ap_last_year_only": 0.1459,
+   "spearman": 0.1311,
+   "total_ratio": 0.798,
+   "by_year": [
+    {
+     "year": 2019,
+     "projected_ha": 89.4,
+     "actual_ha": 68.8
+    },
+    {
+     "year": 2020,
+     "projected_ha": 178.6,
+     "actual_ha": 163.0
+    },
+    {
+     "year": 2021,
+     "projected_ha": 267.5,
+     "actual_ha": 208.4
+    },
+    {
+     "year": 2022,
+     "projected_ha": 356.2,
+     "actual_ha": 290.3
+    },
+    {
+     "year": 2023,
+     "projected_ha": 444.6,
+     "actual_ha": 557.4
+    }
+   ]
+  },
+  "method": "recent clearing rate per square, shrunk to the region rate, projected forward; backtested from 2018 on every later observed year (Hansen years from 2011 only)"
+ }
+}
