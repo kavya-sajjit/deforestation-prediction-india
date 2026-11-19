@@ -3,8 +3,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadRegion, lostBy, PATCH_HA, REGION_LABEL, REGION_ORDER, TIER } from "@/lib/data";
 import Hotspots from "@/components/Hotspots";
 
-const FIRST = 2001, LAST = 2023, FORECAST = 2024; // slider value 2024 = model forecast view
-const YEARS = Array.from({ length: LAST - FIRST + 1 }, (_, i) => FIRST + i);
+// Slider: observed years (Hansen) up to doc.last_observed, then projected years up to END, then one
+// extra stop for the model's 2020-23 forecast view.
+const FIRST = 2001, END = 2036, FORECAST = END + 1;
+const YEARS = Array.from({ length: END - FIRST + 1 }, (_, i) => FIRST + i);
+const lastObs = (doc) => doc?.last_observed ?? 2023;
+
+/** Share of the square lost by `year`: observed up to last_observed, projected after it. */
+function lostAt(p, year, doc) {
+  const last = lastObs(doc);
+  if (year <= last || !p.pj) return lostBy(p, Math.min(year, last));
+  return lostBy(p, last) + (p.pj[Math.min(year, END) - last - 1] ?? 0);
+}
 
 const BASEMAP = {
   version: 8,
@@ -28,7 +38,7 @@ function toGeoJSON(doc, year) {
     const ring = [[lon[r][c], lat[r][c]], [lon[r][c + 1], lat[r][c + 1]], [lon[r + 1][c + 1], lat[r + 1][c + 1]],
                   [lon[r + 1][c], lat[r + 1][c]], [lon[r][c], lat[r][c]]];
     const forecast = year === FORECAST;
-    const lost = lostBy(p, forecast ? 2019 : year);
+    const lost = forecast ? lostBy(p, 2019) : lostAt(p, year, doc);
     const props = {
       i, f: p.f, lost,
       v: forecast ? (p.q ?? p.p ?? -1) : Math.min(1, lost / Math.max(p.f, 1e-3)),
@@ -49,7 +59,7 @@ export default function MapExplorer() {
   const box = useRef(null), map = useRef(null);
   const [region, setRegion] = useState(REGION_ORDER[0]);
   const [doc, setDoc] = useState(null);
-  const [year, setYear] = useState(LAST);
+  const [year, setYear] = useState(2023);
   const [playing, setPlaying] = useState(false);
   const [showActual, setShowActual] = useState(true);
   const [hover, setHover] = useState(null);
@@ -150,8 +160,12 @@ export default function MapExplorer() {
   const stats = useMemo(() => {
     if (!doc) return null;
     const forest = doc.patches.reduce((s, p) => s + p.f, 0) * PATCH_HA;
-    const perYear = YEARS.map((y) => doc.patches.reduce((s, p) => s + ((p.l && p.l[y]) || 0), 0) * PATCH_HA);
-    const shownYear = Math.min(year, LAST);
+    const last = lastObs(doc);
+    const pjTot = doc.projection?.total_ha?.central || [];
+    const perYear = YEARS.map((y) => y <= last
+      ? doc.patches.reduce((s, p) => s + ((p.l && p.l[y]) || 0), 0) * PATCH_HA
+      : (pjTot[y - last - 1] ?? 0) - (pjTot[y - last - 2] ?? 0));
+    const shownYear = Math.min(year, END);
     const lost = perYear.slice(0, shownYear - FIRST + 1).reduce((a, b) => a + b, 0);
     // forecast check: how much 2020-23 loss falls in the 10% of scored patches the model ranks riskiest
     const scored = doc.patches.filter((p) => p.p !== undefined);
@@ -163,11 +177,15 @@ export default function MapExplorer() {
       const total = scored.reduce((s, p) => s + loss(p), 0);
       capture = total > 0 ? sorted.slice(0, flagged).reduce((s, p) => s + loss(p), 0) / total : null;
     }
-    return { forest, perYear, lost, capture, flagged, scored: scored.length };
+    return { forest, perYear, lost, capture, flagged, scored: scored.length, last };
   }, [doc, year]);
 
   const hp = hover && doc ? doc.patches[hover.i] : null;
   const fc = year === FORECAST;
+  const last = lastObs(doc);
+  const projected = !fc && year > last;
+  const pr = doc?.projection;
+  const pjIdx = projected && pr ? year - last - 1 : -1;
   const maxBar = stats ? Math.max(...stats.perYear, 1) : 1;
 
   return (
@@ -186,7 +204,7 @@ export default function MapExplorer() {
           {hp && (
             <div className="tooltip" style={{ left: Math.min(hover.x + 14, 9999), top: hover.y + 14 }}>
               <div>forest in 2000 · {(hp.f * 100).toFixed(0)}%</div>
-              <div>lost by {fc ? 2019 : year} · {(lostBy(hp, fc ? 2019 : year) * 100).toFixed(1)}%</div>
+              <div>{projected ? "projected lost by" : "lost by"} {fc ? 2019 : year} · {((fc ? lostBy(hp, 2019) : lostAt(hp, year, doc)) * 100).toFixed(1)}%</div>
               {hp.q !== undefined ? <div className="accent-ochre">risk 2020–23 · {(hp.q * 100).toFixed(0)}% · {TIER[hp.t]?.label}</div>
                 : hp.p !== undefined && <div className="accent-ochre">model score 2020–23 · {(hp.p * 100).toFixed(0)}%</div>}
               {hp.h ? <div>part of hotspot #{hp.h}</div> : null}
@@ -215,23 +233,36 @@ export default function MapExplorer() {
             <>
               <div className="kv">
                 <span>Forest in 2000</span><b>{Math.round(stats.forest).toLocaleString()} ha</b>
-                <span>Lost 2001–{Math.min(year, LAST)}</span>
-                <b className="accent-rust">{Math.round(stats.lost).toLocaleString()} ha · {(100 * stats.lost / stats.forest).toFixed(1)}%</b>
+                <span>{projected ? "Lost + projected" : "Lost"} 2001–{fc ? last : year}</span>
+                <b className="accent-rust">{Math.round(fc ? stats.perYear.slice(0, last - FIRST + 1).reduce((a, b) => a + b, 0) : stats.lost).toLocaleString()} ha · {(100 * (fc ? stats.perYear.slice(0, last - FIRST + 1).reduce((a, b) => a + b, 0) : stats.lost) / stats.forest).toFixed(1)}%</b>
+                {projected && pr && <>
+                  <span>Projected {last + 1}–{year}</span>
+                  <b className="accent-ochre">{Math.round(pr.total_ha.central[pjIdx]).toLocaleString()} ha
+                    <span className="muted"> ({Math.round(pr.total_ha.low[pjIdx]).toLocaleString()}–{Math.round(pr.total_ha.high[pjIdx]).toLocaleString()})</span></b>
+                </>}
                 {stats.capture !== null && <>
                   <span>Loss in riskiest 10%</span><b className="accent-ochre">{(stats.capture * 100).toFixed(0)}%</b>
                 </>}
               </div>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 8 }}>Forest lost per year</div>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>Forest lost per year{pr ? ` · projected after ${last}` : ""}</div>
                 <div className="bars" aria-label="Forest lost per year">
                   {stats.perYear.map((v, k) => (
                     <i key={k} title={`${YEARS[k]}: ${Math.round(v)} ha`}
-                       className={YEARS[k] === Math.min(year, LAST) && !fc ? "cur" : YEARS[k] <= Math.min(year, LAST) ? "on" : ""}
+                       className={[YEARS[k] > last ? "pj" : "", YEARS[k] === year && !fc ? "cur" : YEARS[k] <= (fc ? last : year) ? "on" : ""].join(" ")}
                        style={{ height: `${Math.max(2, (v / maxBar) * 100)}%` }} />
                   ))}
                 </div>
               </div>
             </>
+          )}
+          {projected && pr && (
+            <div className="note">
+              PROJECTION, not observation. Each square&apos;s clearing pace over {pr.window} years up to {last},
+              carried forward. Tested by projecting {pr.backtest.origin + 1}–{pr.backtest.until} from data up to {pr.backtest.origin}:
+              ranking score {pr.backtest.ap.toFixed(2)} against {pr.backtest.chance_ap.toFixed(2)} by chance; the regional total came out
+              at {Math.round(pr.backtest.total_ratio * 100)}% of what really happened. Roads, mines and policy are not inputs.
+            </div>
           )}
           <div className="legend">
             {fc ? (
@@ -270,19 +301,21 @@ export default function MapExplorer() {
       <div className="timeline">
         <div className="timeline-head">
           <div>
-            <div className="eyebrow">{fc ? "Model forecast · made from early-2019 imagery" : "Observed · Hansen Global Forest Change"}</div>
-            <div className={`year-big ${fc ? "forecast" : ""}`}>{fc ? "2020–23 forecast" : year}</div>
+            <div className="eyebrow">{fc ? "Model forecast · made from early-2019 imagery"
+              : projected ? `Projection · recent pace continued from ${last}` : "Observed · Hansen Global Forest Change"}</div>
+            <div className={`year-big ${fc || projected ? "forecast" : ""}`}>{fc ? "2020–23 forecast" : projected ? `${year} · projected` : year}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn" onClick={() => setPlaying((p) => !p)}>{playing ? "❚❚ PAUSE" : "▶ PLAY"}</button>
+            {doc?.projection && <button className="btn" onClick={() => { setPlaying(false); setYear(END); }}>{END}</button>}
             <button className="btn primary" onClick={() => { setPlaying(false); setYear(FORECAST); }}>SHOW FORECAST</button>
           </div>
         </div>
         <input className="slider" type="range" min={FIRST} max={FORECAST} step={1} value={year}
                aria-label="Year" onChange={(e) => { setPlaying(false); setYear(+e.target.value); }} />
         <div className="ticks">
-          <span>2001</span><span>2006</span><span>2011</span><span>2016</span><span>2019</span><span>2023</span>
-          <span className="fc">FORECAST</span>
+          <span>2001</span><span>2008</span><span>2016</span><span>{last}</span>
+          <span className="fc">2030</span><span className="fc">2036</span><span className="fc">MODEL</span>
         </div>
       </div>
     </div>
