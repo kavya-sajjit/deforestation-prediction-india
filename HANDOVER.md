@@ -75,6 +75,16 @@ the new learning rate are skipped. Before merging, check that both Drives hold t
 - To regenerate: run the first two code cells of the Colab notebook, then section 6. To add the
   projection to map files you already have, run `python -m deforest.projection web/public/data`.
 
+## All of India (added 20 November 2026)
+
+`notebooks/04_india_gee.ipynb` runs it, with sign-up steps at the top. Earth Engine exports a 640 m
+grid of the whole country (Hansen 2001-2025 plus terrain, remoteness, population, night lights, fire,
+rainfall, protected areas, state and district) to the Drive folder `deforestation-india`.
+`deforest.national.table` stitches it; `deforest.national.model` then tests, leaving one state out at
+a time, whether the non-forest factors improve forecasts on states the model never saw, and writes a
+2026-29 risk score, a per-state trend projection to 2036 and district totals for the website.
+Tested only on synthetic data here (`tests/test_national.py`); the first real run will be the real test.
+
 ## Next steps, in order
 
 1. Finish retraining the four from-scratch B-cos models (step 3 above) and compare with the
